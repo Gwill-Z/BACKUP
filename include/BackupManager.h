@@ -1,0 +1,29 @@
+#ifndef BACKUP_MANAGER_H
+#define BACKUP_MANAGER_H
+
+#include <string>
+#include "FileManager.h"
+#include "Compressor.h"
+#include "Encryptor.h"
+#include "CRCValidator.h"
+#include "Logger.h"
+#include "Result.h"
+
+class BackupManager {
+private:
+    std::string sourcePath;
+    std::string backupPath;
+    FileManager fileManager;
+    Compressor compressor;
+    Encryptor encryptor;
+    CRCValidator crcValidator;
+
+public:
+    BackupManager();
+    void setSourcePath(const std::string& path);
+    void setBackupPath(const std::string& path);
+    Result performBackup();
+    Result performRestore();
+};
+
+#endif // BACKUP_MANAGER_H
