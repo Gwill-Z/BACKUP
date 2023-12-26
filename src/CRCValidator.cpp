@@ -1,17 +1,14 @@
 #include "CRCValidator.h"
-#include <string>
-#include <vector>
-// 包含其他必要的头文件
 
-uint32_t CRCValidator::calculateCRC(std::vector<std::pair<std::string, std::string>>& data) {
+uint32_t CRCValidator::calculateCRC(const std::string& data) {
     // 实现CRC计算逻辑
-    uint32_t crc = 0; // 示例CRC计算结果
-    // CRC算法实现...
-    return crc;
-}
-
-bool CRCValidator::validateCRC(std::vector<std::pair<std::string, std::string>>& data, uint32_t expectedCRC) {
-    // 实现CRC校验逻辑
-    uint32_t calculatedCRC = calculateCRC(data);
-    return calculatedCRC == expectedCRC;
+    // 这是一个示例实现
+    uint32_t crc = 0xFFFFFFFF;
+    for (char c : data) {
+        crc ^= static_cast<uint8_t>(c);
+        for (int i = 0; i < 8; i++) {
+            crc = (crc >> 1) ^ ((crc & 1) ? 0xEDB88320 : 0);
+        }
+    }
+    return ~crc;
 }

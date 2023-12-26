@@ -15,6 +15,7 @@ add_executable(BackupProject
     src/main.cpp
     src/BackupManager.cpp
     src/FileManager.cpp
+    src/Packer.cpp
     src/Compressor.cpp
     src/Encryptor.cpp
     src/CRCValidator.cpp

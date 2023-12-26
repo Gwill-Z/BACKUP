@@ -15,23 +15,26 @@ void BackupManager::setBackupPath(const std::string& path) {
 
 Result BackupManager::performBackup() {
     try {
-        // 1. 读取源数据
-        auto data = fileManager.readPath(sourcePath);
+        // 读取原始数据
+    auto files = fileManager.readPath(sourcePath);
 
-        // 2. 压缩数据
-        auto compressedData = compressor.compress(data);
+    // 打包文件
+    std::string packedData = packer.pack(files);
 
-        // 3. 加密数据
-        auto encryptedData = encryptor.encrypt(compressedData);
+    // 压缩打包后的数据
+    auto compressedData = compressor.compress(packedData);
 
-        // 4. 计算CRC
-        auto crc = crcValidator.calculateCRC(encryptedData);
+    // 加密压缩后的数据
+    auto encryptedData = encryptor.encrypt(compressedData);
 
-        // 5. 写入备份文件
-        fileManager.writeFile(backupPath, encryptedData);
+    // 计算加密数据的CRC
+    uint32_t crc = crcValidator.calculateCRC(encryptedData);
 
-        // 6. 记录日志
-        Logger::log("Backup completed successfully.");
+    // 将加密数据和CRC写入备份文件
+    fileManager.writeBackupFile(backupPath, encryptedData, crc);
+
+    // 记录日志
+    Logger::log("Backup completed successfully.");
 
         return Result::Success;
     } catch (const std::exception& e) {
@@ -40,30 +43,39 @@ Result BackupManager::performBackup() {
     }
 }
 
-Result BackupManager::performRestore() {
-    try {
-        // 1. 读取备份数据
-        auto encryptedData = fileManager.readPath(backupPath);
-
-        // 2. 解密数据
-        auto decryptedData = encryptor.decrypt(encryptedData);
-
-        // 3. 解压缩数据
-        auto decompressedData = compressor.decompress(decryptedData);
-
-        // 4. 校验CRC
-        auto isValidCRC = crcValidator.validateCRC(decompressedData, /* 预期的CRC值 */1);
-        if (!isValidCRC) {
-            throw std::runtime_error("CRC validation failed");
-        }
-
-        // 5. 写入恢复数据
-        fileManager.writeFile(sourcePath, decompressedData);
-        Logger::log("Restore completed successfully.");
-
-        return Result::Success;
-    } catch (const std::exception& e) {
-        Logger::log(std::string("Restore failed: ") + e.what());
-        return Result::Failure;
+Result BackupManager::performRestore(const std::string& backupFilePath, const std::string& targetPath) {
+    // 读取备份文件
+    std::string encryptedData;
+    uint32_t storedCRC;
+    std::tie(encryptedData, storedCRC) = fileManager.readBackupFile(backupFilePath);
+    Logger::log("backup start");
+    // 验证CRC
+    if (crcValidator.calculateCRC(encryptedData) != storedCRC) {
+        throw std::runtime_error("CRC validation failed");
     }
+
+    Logger::log("crc验证通过");
+
+    // 解密数据
+    std::string decompressedData = encryptor.decrypt(encryptedData);
+
+    Logger::log("解密完成");
+
+    // 解压缩数据
+    std::string unpackedData = compressor.decompress(decompressedData);
+
+    Logger::log("解压缩完成");
+
+    // 解包数据
+    auto files = packer.unpack(unpackedData);
+
+    Logger::log("解包完成");
+    Logger::log(files[0].first);
+
+    // 恢复文件到目标路径
+    fileManager.restoreFiles(files, targetPath);
+
+    Logger::log("恢复文件完成");
+
+    return Result::Success;
 }

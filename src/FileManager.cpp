@@ -35,60 +35,62 @@ std::vector<std::pair<std::string, std::string>> FileManager::readPath(const std
     return files;
 }
 
-void FileManager::writeFile(const std::string& backupFilePath, std::vector<std::pair<std::string, std::string>>& files) {
+std::tuple<std::string, uint32_t> FileManager::readBackupFile(const std::string& backupFilePath) {
+    std::ifstream input(backupFilePath, std::ios::binary);
+    if (!input) {
+        throw std::runtime_error("Unable to open backup file for reading: " + backupFilePath);
+    }
+
+    // 移动到文件末尾以读取CRC
+    input.seekg(-static_cast<int>(sizeof(uint32_t)), std::ios::end);
+    uint32_t crc;
+    input.read(reinterpret_cast<char*>(&crc), sizeof(crc));
+
+    // 计算数据部分的大小
+    input.seekg(0, std::ios::beg);
+    std::streampos startPos = input.tellg();
+    input.seekg(-static_cast<int>(sizeof(uint32_t)), std::ios::end);
+    std::streampos endPos = input.tellg();
+    size_t dataSize = static_cast<size_t>(endPos - startPos);
+
+    // 读取数据部分
+    input.seekg(0, std::ios::beg);
+    std::string data(dataSize, '\0');
+    input.read(&data[0], dataSize);
+
+    return std::make_tuple(data, crc);
+}
+
+void FileManager::writeBackupFile(const std::string& backupFilePath, const std::string& data, uint32_t crc) {
     std::ofstream output(backupFilePath, std::ios::binary);
     if (!output) {
         throw std::runtime_error("Unable to open backup file for writing: " + backupFilePath);
     }
 
-    for (const auto& file : files) {
-        // 记录文件路径长度和路径
-        size_t pathLength = file.first.size();
-        output.write(reinterpret_cast<const char*>(&pathLength), sizeof(pathLength));
-        output.write(file.first.c_str(), pathLength);
+    // 写入加密数据
+    output.write(data.data(), data.size());
 
-        // 记录文件内容长度和内容
-        size_t contentLength = file.second.size();
-        output.write(reinterpret_cast<const char*>(&contentLength), sizeof(contentLength));
-        output.write(file.second.data(), contentLength);
-    }
+    // 写入CRC值
+    output.write(reinterpret_cast<const char*>(&crc), sizeof(crc));
 }
 
 void FileManager::createDirectory(const std::string& directoryPath) {
     fs::create_directories(directoryPath);
 }
 
-void FileManager::restoreFiles(const std::string& backupFilePath, const std::string& targetPath) {
-    std::ifstream input(backupFilePath, std::ios::binary);
-    if (!input) {
-        throw std::runtime_error("Unable to open backup file for reading: " + backupFilePath);
-    }
+void FileManager::restoreFiles(const std::vector<std::pair<std::string, std::string>>& files, const std::string& targetPath) {
+    for (const auto& file : files) {
+        // 构建完整的目标文件路径
+        std::filesystem::path fullPath = std::filesystem::path(targetPath) / file.first;
 
-    while (!input.eof()) {
-        // 读取文件路径长度和路径
-        size_t pathLength;
-        input.read(reinterpret_cast<char*>(&pathLength), sizeof(pathLength));
-        std::string filePath(pathLength, '\0');
-        input.read(&filePath[0], pathLength);
-
-        // 读取文件内容长度和内容
-        size_t contentLength;
-        input.read(reinterpret_cast<char*>(&contentLength), sizeof(contentLength));
-        std::vector<char> content(contentLength);
-        input.read(content.data(), contentLength);
-
-        // 检查是否已到达文件末尾
-        if (input.eof()) break;
-
-        // 创建文件所在目录
-        fs::path fullTargetPath = fs::path(targetPath) / filePath;
-        fs::create_directories(fullTargetPath.parent_path());
+        // 创建文件所在目录（如果不存在）
+        std::filesystem::create_directories(fullPath.parent_path());
 
         // 写入文件内容
-        std::ofstream output(fullTargetPath, std::ios::binary);
+        std::ofstream output(fullPath, std::ios::binary);
         if (!output) {
-            throw std::runtime_error("Unable to open file for writing: " + fullTargetPath.string());
+            throw std::runtime_error("Unable to open file for writing: " + fullPath.string());
         }
-        output.write(content.data(), content.size());
+        output.write(file.second.data(), file.second.size());
     }
 }

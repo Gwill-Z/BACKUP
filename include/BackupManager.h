@@ -3,6 +3,7 @@
 
 #include <string>
 #include "FileManager.h"
+#include "Packer.h"
 #include "Compressor.h"
 #include "Encryptor.h"
 #include "CRCValidator.h"
@@ -14,6 +15,7 @@ private:
     std::string sourcePath;
     std::string backupPath;
     FileManager fileManager;
+    Packer packer;
     Compressor compressor;
     Encryptor encryptor;
     CRCValidator crcValidator;
@@ -23,7 +25,7 @@ public:
     void setSourcePath(const std::string& path);
     void setBackupPath(const std::string& path);
     Result performBackup();
-    Result performRestore();
+    Result performRestore(const std::string& backupFilePath, const std::string& targetPath);
 };
 
 #endif // BACKUP_MANAGER_H
