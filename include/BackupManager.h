@@ -7,7 +7,6 @@
 #include "Compressor.h"
 #include "Encryptor.h"
 #include "CRCValidator.h"
-#include "Logger.h"
 #include "Result.h"
 
 class BackupManager {

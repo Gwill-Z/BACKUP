@@ -1,5 +1,6 @@
 #include "BackupManager.h"
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 BackupManager::BackupManager() {
     // 构造函数的实现（如果需要的话）
@@ -20,25 +21,25 @@ Result BackupManager::performBackup() {
 
     // 打包文件
     std::string packedData = packer.pack(files);
+    spdlog::info("Packed complete");
 
     // 压缩打包后的数据
     auto compressedData = compressor.compress(packedData);
+    spdlog::info("Compressed complete");
 
     // 加密压缩后的数据
     auto encryptedData = encryptor.encrypt(compressedData);
+    spdlog::info("Encrypted complete");
 
     // 计算加密数据的CRC
     uint32_t crc = crcValidator.calculateCRC(encryptedData);
+    spdlog::info("CRC calculated");
 
     // 将加密数据和CRC写入备份文件
     fileManager.writeBackupFile(backupPath, encryptedData, crc);
-
-    // 记录日志
-    Logger::log("Backup completed successfully.");
-
+    spdlog::info("Backup file written");
         return Result::Success;
     } catch (const std::exception& e) {
-        Logger::log(std::string("Backup failed: ") + e.what());
         return Result::Failure;
     }
 }
@@ -48,34 +49,27 @@ Result BackupManager::performRestore(const std::string& backupFilePath, const st
     std::string encryptedData;
     uint32_t storedCRC;
     std::tie(encryptedData, storedCRC) = fileManager.readBackupFile(backupFilePath);
-    Logger::log("backup start");
     // 验证CRC
     if (crcValidator.calculateCRC(encryptedData) != storedCRC) {
         throw std::runtime_error("CRC validation failed");
     }
-
-    Logger::log("crc验证通过");
+    spdlog::info("CRC validation passed");
 
     // 解密数据
     std::string decompressedData = encryptor.decrypt(encryptedData);
-
-    Logger::log("解密完成");
+    spdlog::info("Decrypted complete");
 
     // 解压缩数据
     std::string unpackedData = compressor.decompress(decompressedData);
-
-    Logger::log("解压缩完成");
+    spdlog::info("Decompressed complete");
 
     // 解包数据
     auto files = packer.unpack(unpackedData);
-
-    Logger::log("解包完成");
-    Logger::log(files[0].first);
+    spdlog::info("Unpacked complete");
 
     // 恢复文件到目标路径
     fileManager.restoreFiles(files, targetPath);
-
-    Logger::log("恢复文件完成");
+    spdlog::info("Restore complete");
 
     return Result::Success;
 }
