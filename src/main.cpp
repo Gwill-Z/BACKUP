@@ -1,6 +1,8 @@
 #include "BackupManager.h"
+#include "Encryptor.h"
 #include <iostream>
 #include <string>
+#include <spdlog/spdlog.h>
 
 int main() {
     BackupManager backupManager;
@@ -15,28 +17,39 @@ int main() {
         std::cin >> choice;
 
         if (choice == 1) {
-            std::string sourcePath, backupPath;
+            std::string sourcePath, backupPath, key;
             std::cout << "输入要备份的源路径: ";
             std::cin >> sourcePath;
             std::cout << "输入备份文件保存路径: ";
             std::cin >> backupPath;
-            
+
+            // 加密选项
+            std::cout << "是否加密备份？(yes/no): ";
+            std::string encryptChoice = "no";
+            std::cin >> encryptChoice;
+            if (encryptChoice == "yes") {
+                std::cout << "输入加密密钥: ";
+                // 以字符串形式读入密钥
+                std::cin >> key;
+            }
             backupManager.setSourcePath(sourcePath);
             backupManager.setBackupPath(backupPath);
             try {
-                backupManager.performBackup();
+                // 执行备份操作
+                backupManager.performBackup(encryptChoice, key);
                 std::cout << "备份完成。\n";
             } catch (const std::exception& e) {
                 std::cerr << "备份失败: " << e.what() << std::endl;
             }
         } else if (choice == 2) {
-            std::string backupPath, restorePath;
+            std::string backupPath, restorePath, key;
             std::cout << "输入要还原的备份文件路径: ";
             std::cin >> backupPath;
             std::cout << "输入还原数据的目标路径: ";
             std::cin >> restorePath;
-            
+
             try {
+                // 执行还原操作
                 backupManager.performRestore(backupPath, restorePath);
                 std::cout << "还原完成。\n";
             } catch (const std::exception& e) {

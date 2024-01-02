@@ -31,7 +31,9 @@ add_executable(BackupProject
 # 创建一个测试目标
 add_executable(BackupProjectTest
     tests/test_huffman.cpp  # 测试主文件
+    tests/test_encrypt.cpp
     src/Compressor.cpp      # 测试文件依赖的源文件
+    src/Encryptor.cpp
     # 其他测试文件
 )
 

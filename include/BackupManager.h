@@ -23,7 +23,7 @@ public:
     BackupManager();
     void setSourcePath(const std::string& path);
     void setBackupPath(const std::string& path);
-    Result performBackup();
+    Result performBackup(std::string encryptChoice, std::string key);
     Result performRestore(const std::string& backupFilePath, const std::string& targetPath);
 };
 
