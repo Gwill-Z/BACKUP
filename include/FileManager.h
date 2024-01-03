@@ -15,7 +15,7 @@ public:
 
 private:
     bool isDirectory(const std::string& path);
-    void readDirectory(const std::string& directoryPath, std::vector<std::pair<std::string, std::string>>& files);
+    void readDirectory(const std::string& rootPath, const std::string& directoryPath, std::vector<std::pair<std::string, std::string>>& files);
     std::string readFile(const std::string& filePath);
 };
 

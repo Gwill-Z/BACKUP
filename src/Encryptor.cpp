@@ -30,7 +30,6 @@ std::string Encryptor::xorEncryptDecrypt(const std::string& data) const {
     std::string result = data;
     for (size_t i = 0; i < data.size(); ++i) {
         result[i] = data[i] ^ _key[i % _key.size()];
-        spdlog::info("result[i]: {}", result[i]);
     }
     return result;
 }

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 namespace fs = std::filesystem;
 
@@ -17,10 +18,13 @@ std::string FileManager::readFile(const std::string& filePath) {
     return buffer.str();
 }
 
-void FileManager::readDirectory(const std::string& directoryPath, std::vector<std::pair<std::string, std::string>>& files) {
+void FileManager::readDirectory(const std::string& rootPath, const std::string& directoryPath, 
+                                std::vector<std::pair<std::string, std::string>>& files) {
     for (const auto& entry : fs::recursive_directory_iterator(directoryPath)) {
         if (!fs::is_directory(entry.status())) {
-            files.push_back({entry.path().string(), readFile(entry.path().string())});
+            // 计算相对路径
+            std::string relativePath = fs::relative(entry.path(), rootPath).string();
+            files.push_back({relativePath, readFile(entry.path().string())});
         }
     }
 }
@@ -28,12 +32,14 @@ void FileManager::readDirectory(const std::string& directoryPath, std::vector<st
 std::vector<std::pair<std::string, std::string>> FileManager::readPath(const std::string& path) {
     std::vector<std::pair<std::string, std::string>> files;
     if (isDirectory(path)) {
-        readDirectory(path, files);
+        readDirectory(path, path, files);  // 传递根路径和当前路径
     } else {
-        files.push_back({path, readFile(path)});
+        std::string relativePath = fs::path(path).filename().string();  // 对于单个文件，使用文件名作为相对路径
+        files.push_back({relativePath, readFile(path)});
     }
     return files;
 }
+
 
 std::tuple<std::string, uint32_t> FileManager::readBackupFile(const std::string& backupFilePath) {
     std::ifstream input(backupFilePath, std::ios::binary);
@@ -81,8 +87,10 @@ void FileManager::createDirectory(const std::string& directoryPath) {
 void FileManager::restoreFiles(const std::vector<std::pair<std::string, std::string>>& files, const std::string& targetPath) {
     for (const auto& file : files) {
         // 构建完整的目标文件路径
+        spdlog::info("Restoring file: {}", file.first);
+        spdlog::info("Target path: {}", targetPath);
         std::filesystem::path fullPath = std::filesystem::path(targetPath) / file.first;
-
+        spdlog::info("Full path: {}", fullPath.string());
         // 创建文件所在目录（如果不存在）
         std::filesystem::create_directories(fullPath.parent_path());
 
