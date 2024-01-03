@@ -1,13 +1,5 @@
-## 下载第三方库
-mkdir third_lib
-
-cd third_lib
-
-git clone https://github.com/gabime/spdlog.git
-
-git clone https://github.com/google/googletest.git
-
-
+## 下载本项目
+git clone --recurse-submodules <https://github.com/Gwill-Z/BACKUP.git>
 
 ## 编译和运行项目
 mkdir build

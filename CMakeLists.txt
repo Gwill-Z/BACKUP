@@ -9,10 +9,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # 包含头文件目录
 include_directories(include)
-add_subdirectory(third_lib/spdlog)
+add_subdirectory(third_libs/spdlog)
 
 # 添加Google Test的子目录
-add_subdirectory(third_lib/googletest)
+add_subdirectory(third_libs/googletest)
 
 # 包含Google Test的头文件
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
