@@ -12,7 +12,7 @@ include_directories(include)
 add_subdirectory(third_lib/spdlog)
 
 # 添加Google Test的子目录
-add_subdirectory(googletest)
+add_subdirectory(third_lib/googletest)
 
 # 包含Google Test的头文件
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
@@ -26,6 +26,7 @@ add_executable(BackupProject
     src/Compressor.cpp
     src/Encryptor.cpp
     src/CRCValidator.cpp
+    src/BackupConfig.cpp
 )
 
 # 创建一个测试目标
