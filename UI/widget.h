@@ -2,6 +2,7 @@
 #define WIDGET_H
 
 #include "BackupConfig.h"
+#include "BackupManager.h"
 #include <QWidget>
 #include <QGroupBox>
 #include <QStackedWidget>
@@ -26,16 +27,19 @@ private:
         QGroupBox *modemenu;
         QGroupBox *gb1, *gb2, *gb3;
         QPushButton *ps1, *ps2, *ps3;
-        QLineEdit *backupPath, *dataPath, *password, *backupedPath, *restorePath;
+        QLineEdit *backupPath, *dataPath, *password, *backupedPath, *restorePath, *nameInput;
         QPushButton *selectBackupPath, *selectDataPath, *backup, *selectBackupedPath, *selectRestorePath, *restore, *changeBackupPath;
         QCheckBox *encrypt;
-        std::string backupConfigPath;
+        std::string backupConfigPath;  //设置备份目标路径
+        BackupManager *backupmanager;
 private slots:
         void GroupBoxChange(QWidget* gb);
         void BackupPathChange(QLineEdit* le);
         void DataPathChange(QLineEdit* le);
         void PasswordInputState(int state);
         void SelectBackupedFile(QLineEdit* le);
-	void ChangeConfig();
+	    void ChangeConfig();
+        void Fbackup();
+
 };
 #endif // WIDGET_H

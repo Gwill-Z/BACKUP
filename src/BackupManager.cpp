@@ -14,7 +14,7 @@ void BackupManager::setBackupPath(const std::string& path) {
     backupPath = path;
 }
 
-Result BackupManager::performBackup(std::string encryptChoice, std::string key) {
+Result BackupManager::performBackup(std::string key) {
     try {
         // 读取原始数据
     auto files = fileManager.readPath(sourcePath);
@@ -29,11 +29,37 @@ Result BackupManager::performBackup(std::string encryptChoice, std::string key) 
 
     auto encryptedData = compressedData;
     // 加密压缩后的数据
-    if (encryptChoice == "yes") {
-        encryptor.setKey(key);
-        encryptedData = encryptor.encrypt(compressedData);
-        spdlog::info("Encrypted complete");
+    encryptor.setKey(key);
+    encryptedData = encryptor.encrypt(compressedData);
+    spdlog::info("Encrypted complete");
+    
+    // 计算加密数据的CRC
+    uint32_t crc = crcValidator.calculateCRC(encryptedData);
+    spdlog::info("CRC calculated");
+
+    // 将加密数据和CRC写入备份文件
+    fileManager.writeBackupFile(backupPath, encryptedData, crc);
+    spdlog::info("Backup file written");
+        return Result::Success;
+    } catch (const std::exception& e) {
+        return Result::Failure;
     }
+}
+
+Result BackupManager::performBackup() {
+    try {
+        // 读取原始数据
+    auto files = fileManager.readPath(sourcePath);
+
+    // 打包文件
+    std::string packedData = packer.pack(files);
+    spdlog::info("Packed complete");
+
+    // 压缩打包后的数据
+    auto compressedData = compressor.compress(packedData);
+    spdlog::info("Compressed complete");
+
+    auto encryptedData = compressedData;
     
     // 计算加密数据的CRC
     uint32_t crc = crcValidator.calculateCRC(encryptedData);

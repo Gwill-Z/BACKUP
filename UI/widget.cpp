@@ -6,10 +6,11 @@
 
 BackupConfig& config = BackupConfig::getInstance();
 
+
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
 {
-    
+    config.loadConfig("../backup_config.txt");
     this->resize(800, 600);
     sw = new QStackedWidget;
 
@@ -42,7 +43,7 @@ Widget::Widget(QWidget *parent)
 //备份
     QHBoxLayout *dataPathSelectBoxL = new QHBoxLayout;
     QGroupBox *dataPathSelectBox = new QGroupBox;
-    QLabel *datapathlabel = new QLabel("数据路径:");
+    QLabel *datapathlabel = new QLabel("待备份数据路径:");
     dataPathSelectBoxL->addWidget(datapathlabel);
     dataPath = new QLineEdit;
     dataPath->setReadOnly(true);
@@ -54,6 +55,15 @@ Widget::Widget(QWidget *parent)
     dataPathSelectBoxL->addWidget(selectDataPath);
     dataPathSelectBox->setLayout(dataPathSelectBoxL);
     gbl1->addWidget(dataPathSelectBox);
+
+    QHBoxLayout *nameInputBoxL = new QHBoxLayout;
+    QGroupBox *nameInputBox = new QGroupBox;
+    QLabel *nameInputlabel = new QLabel("备份文件名称:");
+    nameInputBoxL->addWidget(nameInputlabel);
+    nameInput = new QLineEdit;
+    nameInputBoxL->addWidget(nameInput);
+    nameInputBox->setLayout(nameInputBoxL);
+    gbl1->addWidget(nameInputBox);
 
     QHBoxLayout *selectEncryptL = new QHBoxLayout;
     QGroupBox *selectEncryptBox = new QGroupBox;
@@ -70,7 +80,10 @@ Widget::Widget(QWidget *parent)
 
     backup = new QPushButton("备份");
     gbl1->addWidget(backup);
-
+    backupmanager = new BackupManager;
+    connect(backup, &QPushButton::clicked, this, [=]() {
+        Fbackup();
+    });
 
 //还原
     QHBoxLayout *backupPathSelectBoxL = new QHBoxLayout;
@@ -195,7 +208,43 @@ void Widget::SelectBackupedFile(QLineEdit* le){
 }
 
 void Widget::ChangeConfig(){
+    if(backupConfigPath.length() == 0){
+        QMessageBox::information(this, "提示", "请选择路径");\
+        return;
+    }
     config.setBackupPath(backupConfigPath);
     config.saveConfig("../backup_config.txt");
-    QMessageBox::information(this, "Message", "修改成功");
+    QMessageBox::information(this, "提示", "修改成功");
+}
+
+void Widget::Fbackup(){
+    if(dataPath->text().isEmpty()){
+        QMessageBox::information(this, "提示", "请选择待备份数据路径");
+        return;
+    }
+    if(nameInput->text().isEmpty()){
+        QMessageBox::information(this, "提示", "请输入名称");
+        return;
+    }
+    if(encrypt->isChecked() && password->text().isEmpty()){
+        QMessageBox::information(this, "提示", "请输入密码");
+        return;
+    }
+    backupmanager->setSourcePath(dataPath->text().toStdString());
+    backupmanager->setBackupPath(config.getBackupPath() + "/" + nameInput->text().toStdString() + ".zth");
+    if(encrypt->isChecked()){
+        try{
+            backupmanager->performBackup(password->text().toStdString());
+            QMessageBox::information(this, "提示", "备份成功");
+        } catch(const std::exception& e){
+            QMessageBox::information(this, "提示", "备份失败");
+        }
+    }else{
+        try{
+            backupmanager->performBackup();
+            QMessageBox::information(this, "提示", "备份成功");
+        } catch(const std::exception& e){
+            QMessageBox::information(this, "提示", "备份失败");
+        }
+    }
 }
