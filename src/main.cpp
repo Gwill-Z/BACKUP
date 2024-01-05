@@ -39,18 +39,16 @@ int main() {
             std::cout << "是否加密备份？(yes/no): ";
             std::string encryptChoice;
             std::cin >> encryptChoice;
-            if (encryptChoice == "yes") {
-                std::cout << "输入加密密钥: ";
-                std::cin >> key;
-            }
+            
 
             backupManager.setSourcePath(sourcePath);
             backupManager.setBackupPath(config.getBackupPath() + "/" + backupfileName + ".zth");
-            try {
-                backupManager.performBackup(encryptChoice, key);  // 适当修改 performBackup 以接受加密选项和密钥
-                std::cout << "备份完成。\n";
-            } catch (const std::exception& e) {
-                std::cerr << "备份失败: " << e.what() << std::endl;
+            if (encryptChoice == "yes") {
+                std::cout << "输入加密密钥: ";
+                std::cin >> key;
+                backupManager.performBackup(key);
+            } else {
+                backupManager.performBackup();
             }
         } else if (choice == 3) {
             std::string targetPath, fileName;
@@ -59,11 +57,15 @@ int main() {
             std::cout << "输入还原目标路径: ";
             std::cin >> targetPath;
             std::string fullBackupPath = config.getBackupPath() + "/" + fileName;   
-            try {
-                backupManager.performRestore(fullBackupPath, targetPath);  // 假设还原到备份路径下
+            if (backupManager.isEncrypt(fullBackupPath)) {
+                std::cout << "输入加密密钥: ";
+                std::string key;
+                std::cin >> key;
+                backupManager.performRestore(fullBackupPath, targetPath, key);
                 std::cout << "还原完成。\n";
-            } catch (const std::exception& e) {
-                std::cerr << "还原失败: " << e.what() << std::endl;
+            } else {
+                backupManager.performRestore(fullBackupPath, targetPath);
+                std::cout << "还原完成。\n";
             }
         } else if (choice == 4) {
             break;

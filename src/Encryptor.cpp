@@ -13,17 +13,7 @@ std::string Encryptor::encrypt(const std::string& data) const {
 }
 
 std::string Encryptor::decrypt(const std::string& data) {
-    if (data.compare(0, ENCRYPTION_MARKER.size(), ENCRYPTION_MARKER) == 0) {
-        std::cout << "已检测到加密数据\n" << "请输入密钥: ";
-        std::string key;
-        std::cin >> key;
-        setKey(key);
-        // 去除加密标记后解密
-        return xorEncryptDecrypt(data.substr(ENCRYPTION_MARKER.size()));
-    } else {
-        // 如果数据没有加密标记，则原样返回
-        return data;
-    }
+    return xorEncryptDecrypt(data.substr(ENCRYPTION_MARKER.size()));
 }
 
 std::string Encryptor::xorEncryptDecrypt(const std::string& data) const {
