@@ -11,7 +11,9 @@
 #include <QLineEdit>
 #include <QCheckBox>
 #include <QMessageBox>
+#include <QInputDialog>
 #include <string>
+#include <iostream>
 
 class Widget : public QWidget
 {
@@ -40,6 +42,7 @@ private slots:
         void SelectBackupedFile(QLineEdit* le);
 	    void ChangeConfig();
         void Fbackup();
+        void Frestore();
 
 };
 #endif // WIDGET_H

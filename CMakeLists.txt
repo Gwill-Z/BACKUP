@@ -12,6 +12,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_PREFIX_PATH $ENV{QTDIR512MINGW})
 find_package(Qt5 COMPONENTS Core Widgets Gui REQUIRED)
 
+#调试模式
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCMAKE_BUILD_TYPE=Debug")
+
 include_directories(UI)
 include_directories(include)
 
@@ -57,7 +61,7 @@ add_executable(BackupProjectTest
     src/Encryptor.cpp
     # 其他测试文件
 )
- 
+
 target_link_libraries(${PROJECT_NAME} Qt5::Core Qt5::Gui Qt5::Widgets)
 
 # 链接Google Test库和项目的其他依赖

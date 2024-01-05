@@ -117,7 +117,11 @@ Widget::Widget(QWidget *parent)
     gbl2->addWidget(restorePathSelectBox);
 
     restore = new QPushButton("还原");
+    connect(restore, &QPushButton::clicked, this, [=]() {
+        Frestore();
+    });
     gbl2->addWidget(restore);
+    
 
 //主界面
     gb1->setLayout(gbl1);
@@ -247,4 +251,42 @@ void Widget::Fbackup(){
             QMessageBox::information(this, "提示", "备份失败");
         }
     }
+}
+
+void Widget::Frestore(){
+    if(backupedPath->text().isEmpty()){
+        QMessageBox::information(this, "提示", "请选择待还原文件");
+        return;
+    }
+    if(restorePath->text().isEmpty()){
+        QMessageBox::information(this, "提示", "请选择还原路径");
+        return;
+    }
+    if(backupmanager->isEncrypt(backupedPath->text().toStdString())){
+        bool ok;
+        QString Qpsw = QInputDialog::getText(nullptr, "输入密码", "请输入密码:", QLineEdit::Password, "", &ok);
+        std::string psw = Qpsw.toStdString();
+        if(!ok){
+            return;
+        } else if(psw.length() == 0){
+            QMessageBox::information(this, "提示", "密码不能为空");
+            return;
+        } 
+        else{
+            try{
+                backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString(), psw);
+                QMessageBox::information(this, "提示", "还原成功");
+            } catch(const std::exception& e){
+                QMessageBox::information(this, "提示", "还原失败");
+            }
+        }
+    } else{
+        try{
+            backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString());
+            QMessageBox::information(this, "提示", "还原成功");
+        } catch(const std::exception& e){
+            QMessageBox::information(this, "提示", "还原失败");
+        }
+    }
+    
 }
