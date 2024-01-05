@@ -9,6 +9,11 @@
 #include "CRCValidator.h"
 #include "Result.h"
 
+struct Key {
+    std::string key;
+    bool isEncrypt;
+};
+
 class BackupManager {
 private:
     std::string sourcePath;
@@ -27,7 +32,7 @@ public:
     Result performBackup(std::string key);
     Result performRestore(const std::string& backupFilePath, const std::string& targetPath);
     Result performRestore(const std::string& backupFilePath, const std::string& targetPath, std::string key);
-    bool isEncrypt(const std::string& backupFilePath);
+    Key isEncrypt(const std::string& backupFilePath);
 };
 
 #endif // BACKUP_MANAGER_H

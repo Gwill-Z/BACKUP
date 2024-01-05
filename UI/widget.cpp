@@ -262,10 +262,15 @@ void Widget::Frestore(){
         QMessageBox::information(this, "提示", "请选择还原路径");
         return;
     }
-    if(backupmanager->isEncrypt(backupedPath->text().toStdString())){
+    if(backupmanager->isEncrypt(backupedPath->text().toStdString()).isEncrypt){
         bool ok;
         QString Qpsw = QInputDialog::getText(nullptr, "输入密码", "请输入密码:", QLineEdit::Password, "", &ok);
         std::string psw = Qpsw.toStdString();
+        std::string psw_bak = backupmanager->isEncrypt(backupedPath->text().toStdString()).key;
+        if(psw != psw_bak){
+            QMessageBox::information(this, "提示", "密码错误");
+            return;
+        }
         if(!ok){
             return;
         } else if(psw.length() == 0){

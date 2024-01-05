@@ -9,11 +9,12 @@ void Encryptor::setKey(const std::string& key) {
 }
 
 std::string Encryptor::encrypt(const std::string& data) const {
-    return ENCRYPTION_MARKER + xorEncryptDecrypt(data);
+    // return ENCRYPTION_MARKER + xorEncryptDecrypt(data);
+    return ENCRYPTION_MARKER + _key + '\0' + xorEncryptDecrypt(data);
 }
 
 std::string Encryptor::decrypt(const std::string& data) {
-    return xorEncryptDecrypt(data.substr(ENCRYPTION_MARKER.size()));
+    return xorEncryptDecrypt(data);
 }
 
 std::string Encryptor::xorEncryptDecrypt(const std::string& data) const {

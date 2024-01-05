@@ -116,6 +116,8 @@ Result BackupManager::performRestore(const std::string& backupFilePath, const st
     
     // 解密数据
     encryptor.setKey(key);
+    size_t keyEndPos = encryptedData.find('\0', ENCRYPTION_MARKER.size());
+    encryptedData = encryptedData.substr(keyEndPos + 1);
     std::string decompressedData = encryptor.decrypt(encryptedData);
     spdlog::info("Decrypted complete");
 
@@ -134,14 +136,18 @@ Result BackupManager::performRestore(const std::string& backupFilePath, const st
     return Result::Success;
 }
 
-bool BackupManager::isEncrypt(const std::string& backupFilePath) {
+Key BackupManager::isEncrypt(const std::string& backupFilePath) {
     // 读取备份文件
     std::string encryptedData;
     uint32_t storedCRC;
     std::tie(encryptedData, storedCRC) = fileManager.readBackupFile(backupFilePath);
     if (encryptedData.compare(0, ENCRYPTION_MARKER.size(), ENCRYPTION_MARKER) == 0) {
-        return true;
+        // 提取密钥
+        size_t keyEndPos = encryptedData.find('\0', ENCRYPTION_MARKER.size());
+        std::string extractedKey = encryptedData.substr(ENCRYPTION_MARKER.size(), keyEndPos - ENCRYPTION_MARKER.size());
+        return {extractedKey, true};
     } else {
-        return false;
+        return {"", false};
     }
 }
+

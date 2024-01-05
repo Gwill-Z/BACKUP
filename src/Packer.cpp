@@ -17,9 +17,6 @@ std::string Packer::pack(std::vector<std::pair<std::string, std::string>> files)
     return packedStream.str();
 }
 
-
-
-
 std::vector<std::pair<std::string, std::string>> Packer::unpack(std::string packedData) {
     std::vector<std::pair<std::string, std::string>> files;
     std::istringstream packedStream(packedData);
