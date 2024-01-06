@@ -12,6 +12,13 @@
 #include <QCheckBox>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QStandardItemModel>
+#include <QTableView>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QFileDialog>
+#include <QLabel>
+#include <QDebug>
 #include <string>
 #include <iostream>
 
@@ -31,7 +38,10 @@ private:
         QPushButton *ps1, *ps2, *ps3;
         QLineEdit *backupPath, *dataPath, *password, *backupedPath, *restorePath, *nameInput;
         QPushButton *selectBackupPath, *selectDataPath, *backup, *selectBackupedPath, *selectRestorePath, *restore, *changeBackupPath;
-        QCheckBox *encrypt;
+        QCheckBox *encrypt, *filebackup, *dirbackup;
+        QTableView *restoreTable;
+        QDir restoreSrcDir;
+        QModelIndexList selectedIndexes;
         std::string backupConfigPath;  //设置备份目标路径
         BackupManager *backupmanager;
 private slots:

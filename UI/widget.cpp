@@ -1,8 +1,5 @@
 #include "widget.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QFileDialog>
-#include <QLabel>
+
 
 BackupConfig& config = BackupConfig::getInstance();
 
@@ -35,12 +32,37 @@ Widget::Widget(QWidget *parent)
     });
     gbl3->addWidget(selectBackupPath);
     changeBackupPath = new QPushButton("确定");
-    gbl3->addWidget(changeBackupPath);
     connect(changeBackupPath, &QPushButton::clicked, this, [=]() {
         ChangeConfig();
     });
+    backupConfigPath = config.getBackupPath();
+    backupPath->setText(QString::fromStdString(backupConfigPath));
+    gbl3->addWidget(changeBackupPath);
+    
 
 //备份
+    QHBoxLayout *dataClassSelectBoxL = new QHBoxLayout;
+    QGroupBox *dataClassSelectBox = new QGroupBox;
+    QLabel *dataclasslabel = new QLabel("备份类型:");
+    dataClassSelectBoxL->addWidget(dataclasslabel);
+    filebackup = new QCheckBox("文件");
+    dirbackup = new QCheckBox("目录");
+    filebackup->setChecked(true);
+    dataClassSelectBoxL->addWidget(filebackup);
+    dataClassSelectBoxL->addWidget(dirbackup);
+    dataClassSelectBox->setLayout(dataClassSelectBoxL);
+    connect(filebackup, &QCheckBox::stateChanged, this, [=](int state) {
+    if (state == Qt::Checked) {
+        dirbackup->setChecked(false);
+        }
+    });
+    connect(dirbackup, &QCheckBox::stateChanged, this, [=](int state) {
+    if (state == Qt::Checked) {
+        filebackup->setChecked(false);
+        }
+    });
+    gbl1->addWidget(dataClassSelectBox);
+
     QHBoxLayout *dataPathSelectBoxL = new QHBoxLayout;
     QGroupBox *dataPathSelectBox = new QGroupBox;
     QLabel *datapathlabel = new QLabel("待备份数据路径:");
@@ -88,16 +110,52 @@ Widget::Widget(QWidget *parent)
 //还原
     QHBoxLayout *backupPathSelectBoxL = new QHBoxLayout;
     QGroupBox *backupPathSelectBox = new QGroupBox;
-    QLabel *backuppathlabel = new QLabel("待还原文件:");
-    backupPathSelectBoxL->addWidget(backuppathlabel);
-    backupedPath = new QLineEdit;
-    backupedPath->setReadOnly(true);
-    backupPathSelectBoxL->addWidget(backupedPath);
-    selectBackupedPath = new QPushButton("选择");
-    connect(selectBackupedPath, &QPushButton::clicked, this, [=]() {
-        SelectBackupedFile(backupedPath);
-    });
-    backupPathSelectBoxL->addWidget(selectBackupedPath);
+
+    // QLabel *backuppathlabel = new QLabel("待还原文件:");
+    // backupPathSelectBoxL->addWidget(backuppathlabel);
+    // backupedPath = new QLineEdit;
+    // backupedPath->setReadOnly(true);
+    // backupPathSelectBoxL->addWidget(backupedPath);
+    // selectBackupedPath = new QPushButton("选择");
+    // connect(selectBackupedPath, &QPushButton::clicked, this, [=]() {
+    //     SelectBackupedFile(backupedPath);
+    // });
+    // backupPathSelectBoxL->addWidget(selectBackupedPath);
+
+    // 创建一个 QStandardItemModel 对象
+    restoreTable = new QTableView();
+    QStandardItemModel* model = new QStandardItemModel(this);
+    model->setColumnCount(1);
+
+    // 获取目录中特定后缀的文件列表
+    QStringList filters;
+    filters << "*.zth";
+    restoreSrcDir.setPath(QString::fromStdString(backupConfigPath));
+    QFileInfoList fileList = restoreSrcDir.entryInfoList(filters, QDir::Files);
+
+    // 将文件列表添加到表格模型中
+    foreach (const QFileInfo& fileInfo, fileList) {
+        QString fileName = fileInfo.fileName();
+        QStandardItem* item = new QStandardItem(fileName);
+        model->appendRow(item);
+    }
+
+    // 设置表格模型
+    restoreTable->setModel(model);
+    //连接
+    connect(restoreTable->selectionModel(), &QItemSelectionModel::selectionChanged, this, [=](const QItemSelection& selected, const QItemSelection& deselected) {
+    Q_UNUSED(deselected);
+
+    selectedIndexes = restoreTable->selectionModel()->selectedIndexes();
+    foreach (const QModelIndex& index, selectedIndexes) {
+        QString selectedFileName = index.data().toString();
+        QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
+        qDebug() << "Selected File: " << selectedFilePath;
+    }
+});
+
+    backupPathSelectBoxL->addWidget(restoreTable);
+
     backupPathSelectBox->setLayout(backupPathSelectBoxL);
     gbl2->addWidget(backupPathSelectBox);
 
@@ -178,6 +236,7 @@ void Widget::GroupBoxChange(QWidget* gb){
         ps2->setStyleSheet("background-color: gray");
     } else if (gb == gb3) {
         ps3->setStyleSheet("background-color: gray");
+        backupPath->setText(QString::fromStdString(backupConfigPath));
     }
 }
 
@@ -187,7 +246,6 @@ void Widget::BackupPathChange(QLineEdit* le){
                 QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
             if (!path.isEmpty()) {
                 le->setText(path);
-                backupConfigPath = path.toStdString();
             }
 }
 
@@ -195,13 +253,21 @@ void Widget::PasswordInputState(int state){
     password->setDisabled(state != Qt::Checked);
 }
 
-void Widget::DataPathChange(QLineEdit* le){
-    QString path = QFileDialog::getExistingDirectory(
-                nullptr, "选择目录", QDir::homePath(),
-                QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-            if (!path.isEmpty()) {
-                le->setText(path);
-            }
+void Widget::DataPathChange(QLineEdit* le) {
+    QString path;
+    if(filebackup->isChecked()){
+        path = QFileDialog::getOpenFileName(this, tr("选择文件"), QDir::homePath());
+    } else if(dirbackup->isChecked()){
+        path = QFileDialog::getExistingDirectory(
+            nullptr, "选择目录", QDir::homePath(),
+            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    } else{
+        QMessageBox::information(this, "提示", "系统出错");
+    }
+    
+    if (!path.isEmpty()) {
+        le->setText(path);
+    }
 }
 
 void Widget::SelectBackupedFile(QLineEdit* le){
@@ -212,12 +278,13 @@ void Widget::SelectBackupedFile(QLineEdit* le){
 }
 
 void Widget::ChangeConfig(){
-    if(backupConfigPath.length() == 0){
-        QMessageBox::information(this, "提示", "请选择路径");\
+    if(backupPath->text().isEmpty()){
+        QMessageBox::information(this, "提示", "请选择路径");
         return;
-    }
+    } 
     config.setBackupPath(backupConfigPath);
     config.saveConfig("../backup_config.txt");
+    backupConfigPath = backupPath->text().toStdString();
     QMessageBox::information(this, "提示", "修改成功");
 }
 
@@ -254,7 +321,7 @@ void Widget::Fbackup(){
 }
 
 void Widget::Frestore(){
-    if(backupedPath->text().isEmpty()){
+    if(selectedIndexes.isEmpty()){
         QMessageBox::information(this, "提示", "请选择待还原文件");
         return;
     }
@@ -262,36 +329,85 @@ void Widget::Frestore(){
         QMessageBox::information(this, "提示", "请选择还原路径");
         return;
     }
-    if(backupmanager->isEncrypt(backupedPath->text().toStdString()).isEncrypt){
+    foreach (const QModelIndex& index, selectedIndexes) {
+        QString selectedFileName = index.data().toString();
+        QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
+        
+        if(backupmanager->isEncrypt(selectedFilePath.toStdString()).isEncrypt){
         bool ok;
-        QString Qpsw = QInputDialog::getText(nullptr, "输入密码", "请输入密码:", QLineEdit::Password, "", &ok);
+        QString Qpsw = QInputDialog::getText(nullptr, "输入密码", selectedFileName + "已加密，请输入密码:", QLineEdit::Password, "", &ok);
         std::string psw = Qpsw.toStdString();
-        std::string psw_bak = backupmanager->isEncrypt(backupedPath->text().toStdString()).key;
+        std::string psw_bak = backupmanager->isEncrypt(selectedFilePath.toStdString()).key;
         if(psw != psw_bak){
-            QMessageBox::information(this, "提示", "密码错误");
+            QMessageBox::information(this, "提示", selectedFileName + "密码错误");
             return;
         }
         if(!ok){
             return;
         } else if(psw.length() == 0){
-            QMessageBox::information(this, "提示", "密码不能为空");
+            QMessageBox::information(this, "提示", selectedFileName + "密码不能为空");
             return;
         } 
         else{
             try{
-                backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString(), psw);
-                QMessageBox::information(this, "提示", "还原成功");
+                backupmanager->performRestore(selectedFilePath.toStdString(), restorePath->text().toStdString(), psw);
+                QMessageBox::information(this, "提示", selectedFileName + "还原成功");
             } catch(const std::exception& e){
-                QMessageBox::information(this, "提示", "还原失败");
+                QMessageBox::information(this, "提示", selectedFileName + "还原失败");
             }
         }
     } else{
         try{
-            backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString());
-            QMessageBox::information(this, "提示", "还原成功");
+            backupmanager->performRestore(selectedFilePath.toStdString(), restorePath->text().toStdString());
+            QMessageBox::information(this, "提示", selectedFileName + "还原成功");
         } catch(const std::exception& e){
-            QMessageBox::information(this, "提示", "还原失败");
+            QMessageBox::information(this, "提示", selectedFileName + "还原失败");
         }
     }
+    }
+    
     
 }
+
+// void Widget::Frestore(){
+//     if(backupedPath->text().isEmpty()){
+//         QMessageBox::information(this, "提示", "请选择待还原文件");
+//         return;
+//     }
+//     if(restorePath->text().isEmpty()){
+//         QMessageBox::information(this, "提示", "请选择还原路径");
+//         return;
+//     }
+//     if(backupmanager->isEncrypt(backupedPath->text().toStdString()).isEncrypt){
+//         bool ok;
+//         QString Qpsw = QInputDialog::getText(nullptr, "输入密码", "请输入密码:", QLineEdit::Password, "", &ok);
+//         std::string psw = Qpsw.toStdString();
+//         std::string psw_bak = backupmanager->isEncrypt(backupedPath->text().toStdString()).key;
+//         if(psw != psw_bak){
+//             QMessageBox::information(this, "提示", "密码错误");
+//             return;
+//         }
+//         if(!ok){
+//             return;
+//         } else if(psw.length() == 0){
+//             QMessageBox::information(this, "提示", "密码不能为空");
+//             return;
+//         } 
+//         else{
+//             try{
+//                 backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString(), psw);
+//                 QMessageBox::information(this, "提示", "还原成功");
+//             } catch(const std::exception& e){
+//                 QMessageBox::information(this, "提示", "还原失败");
+//             }
+//         }
+//     } else{
+//         try{
+//             backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString());
+//             QMessageBox::information(this, "提示", "还原成功");
+//         } catch(const std::exception& e){
+//             QMessageBox::information(this, "提示", "还原失败");
+//         }
+//     }
+    
+// }
