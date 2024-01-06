@@ -33,6 +33,7 @@ public:
     Result performRestore(const std::string& backupFilePath, const std::string& targetPath);
     Result performRestore(const std::string& backupFilePath, const std::string& targetPath, std::string key);
     Key isEncrypt(const std::string& backupFilePath);
+    
 };
 
 #endif // BACKUP_MANAGER_H

@@ -1,4 +1,5 @@
 #include "FileManager.h"
+#include "utils.h"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -6,6 +7,15 @@
 #include <spdlog/spdlog.h>
 
 namespace fs = std::filesystem;
+
+void FileManager::setBackupFilter(long long minSize, long long maxSize, std::time_t startTime, std::time_t endTime, std::vector<std::string> fileFilter, std::vector<std::string> directoryFilter) {
+    backupFilter.sizeFilter.minSize = minSize;
+    backupFilter.sizeFilter.maxSize = maxSize;
+    backupFilter.timeFilter.startTime = startTime;
+    backupFilter.timeFilter.endTime = endTime;
+    backupFilter.fileFilter = fileFilter;
+    backupFilter.directoryFilter = directoryFilter;
+}
 
 bool FileManager::isDirectory(const std::string& path) {
     return fs::is_directory(fs::status(path));
@@ -25,10 +35,23 @@ void FileManager::readDirectory(const std::string& rootPath, const std::string& 
     std::string lastComponent = rootPathObj.filename().string();
     for (const auto& entry : fs::recursive_directory_iterator(directoryPath)) {
         if (!fs::is_directory(entry.status())) {
+            if (!isFileSizeInRange(entry.path().string(), backupFilter.sizeFilter.minSize, backupFilter.sizeFilter.maxSize)) {
+                continue;
+            }
+            if (!isFileModifiedTimeInRange(entry.path().string(), backupFilter.timeFilter.startTime, backupFilter.timeFilter.endTime)) {
+                continue;
+            }
+            if (isFileInList(entry.path().string(), backupFilter.fileFilter)) {
+                continue;
+            }
             // 计算相对路径
             std::string relativePath = fs::relative(entry.path(), rootPath).string();
             std::string fullRelativePath = lastComponent + "/" + relativePath;
             files.push_back({fullRelativePath, readFile(entry.path().string())});
+        } else {
+            if (isFileInDirectories(entry.path().string(), backupFilter.directoryFilter)) {
+                continue;
+            }
         }
     }
 }

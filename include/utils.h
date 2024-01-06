@@ -1,30 +1,47 @@
+#ifndef UTILS_H
+#define UTILS_H
+
 #include <iostream>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctime>
 #include <string>
+#include <vector>
 
-// 函数用于获取文件大小
-long getFileSize(const std::string& filePath) {
+bool isFileSizeInRange(const std::string& filePath, long long minSize, long long maxSize) {
     struct stat fileStat;
-    if (stat(filePath.c_str(), &fileStat) == -1) {
-        perror("stat");
-        return -1; // 返回-1表示错误
+    if (stat(filePath.c_str(), &fileStat) != 0) {
+        return false; // 文件不存在或无法访问
     }
-    return fileStat.st_size; // 返回文件大小
+    long long fileSize = static_cast<long long>(fileStat.st_size);
+    return fileSize >= minSize && fileSize <= maxSize;
 }
 
-// 函数用于获取文件的最后修改时间
-std::string getFileLastModifiedTime(const std::string& filePath) {
+bool isFileModifiedTimeInRange(const std::string& filePath, std::time_t startTime, std::time_t endTime) {
     struct stat fileStat;
-    if (stat(filePath.c_str(), &fileStat) == -1) {
-        perror("stat");
-        return ""; // 返回空字符串表示错误
+    if (stat(filePath.c_str(), &fileStat) != 0) {
+        return false; // 文件不存在或无法访问
     }
-
-    char timeString[100];
-    const struct tm* timeinfo;
-    timeinfo = localtime(&fileStat.st_mtime);
-    strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", timeinfo);
-    return std::string(timeString); // 返回最后修改时间的字符串表示
+    std::time_t modifiedTime = fileStat.st_mtime;
+    return modifiedTime >= startTime && modifiedTime <= endTime;
 }
+
+bool isFileInList(const std::string& filePath, const std::vector<std::string>& fileList) {
+    for (const auto& file : fileList) {
+        if (filePath == file) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isFileInDirectories(const std::string& filePath, const std::vector<std::string>& directoryList) {
+    for (const auto& dir : directoryList) {
+        if (filePath.find(dir) == 0) { // 检查filePath是否以dir开头
+            return true;
+        }
+    }
+    return false;
+}
+
+#endif // UTILS_H

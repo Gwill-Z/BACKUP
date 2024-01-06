@@ -62,7 +62,6 @@ add_executable(BackupProjectTest
     tests/test_crcvalidator.cpp
     tests/test_filemanager.cpp
     tests/test_compressor.cpp
-    tests/test_utils.cpp
     src/Compressor.cpp      # 测试文件依赖的源文件
     src/Encryptor.cpp
     src/Packer.cpp
