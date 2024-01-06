@@ -57,8 +57,15 @@ add_executable(${PROJECT_NAME} ${HEADER_LIST} ${SOURCE_LIST})
 add_executable(BackupProjectTest
     tests/test_huffman.cpp  # 测试主文件
     tests/test_encrypt.cpp
+    tests/test_packer.cpp
+    tests/test_crcvalidator.cpp
+    tests/test_filemanager.cpp
+    tests/test_compressor.cpp
     src/Compressor.cpp      # 测试文件依赖的源文件
     src/Encryptor.cpp
+    src/Packer.cpp
+    src/CRCValidator.cpp
+    src/FileManager.cpp
     # 其他测试文件
 )
 

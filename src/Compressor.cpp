@@ -23,8 +23,11 @@ void printHuffmanTree(const std::shared_ptr<HuffmanNode>& node, std::string pref
 }
 
 void Compressor::buildTree(const std::unordered_map<char, int>& frequencies) {
+    if (frequencies.empty()) {
+        root = nullptr;
+        return;
+    }
     std::priority_queue<std::shared_ptr<HuffmanNode>, std::vector<std::shared_ptr<HuffmanNode>>, Compare> minHeap;
-
     for (const auto& pair : frequencies) {
         minHeap.push(std::make_shared<HuffmanNode>(pair.first, pair.second));
     }
@@ -45,7 +48,7 @@ void Compressor::buildTree(const std::unordered_map<char, int>& frequencies) {
 void Compressor::generateCodes(const std::shared_ptr<HuffmanNode>& node, const std::string& code) {
     if (!node) return;
     if (node->character != '\0') {
-        codes[node->character] = code;
+        codes[node->character] = code.empty() ? "0" : code;
     }
     generateCodes(node->left, code + "0");
     generateCodes(node->right, code + "1");
@@ -76,6 +79,9 @@ std::shared_ptr<HuffmanNode> Compressor::deserializeTree(const std::string& str,
 }
 
 std::string Compressor::compress(const std::string& data) {
+    if (data.empty() || data.size() == 1) {
+        return data; 
+    } 
     // Step 1: Calculate frequencies
     std::unordered_map<char, int> frequencies;
     for (char ch : data) {
@@ -123,6 +129,9 @@ std::string Compressor::compress(const std::string& data) {
 
 
 std::string Compressor::decompress(const std::string& encodedText) {
+    if (encodedText.empty() || encodedText.size() == 1) {
+        return encodedText;
+    }
     // 分离序列化的树、填充信息和编码文本
     size_t firstDelimiterPos = encodedText.find('\x02');
     size_t secondDelimiterPos = encodedText.find('\x02', firstDelimiterPos + 1);
