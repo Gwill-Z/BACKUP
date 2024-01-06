@@ -124,8 +124,14 @@ Widget::Widget(QWidget *parent)
 
     // 创建一个 QStandardItemModel 对象
     restoreTable = new QTableView();
-    QStandardItemModel* model = new QStandardItemModel(this);
-    model->setColumnCount(1);
+    
+    model = new QStandardItemModel(this);
+    model->setColumnCount(3);
+
+    // 设置列标题
+    model->setHeaderData(0, Qt::Horizontal, "文件名");
+    model->setHeaderData(1, Qt::Horizontal, "大小");
+    model->setHeaderData(2, Qt::Horizontal, "最后修改时间");
 
     // 获取目录中特定后缀的文件列表
     QStringList filters;
@@ -136,23 +142,41 @@ Widget::Widget(QWidget *parent)
     // 将文件列表添加到表格模型中
     foreach (const QFileInfo& fileInfo, fileList) {
         QString fileName = fileInfo.fileName();
-        QStandardItem* item = new QStandardItem(fileName);
-        model->appendRow(item);
+        QString fileSize = QString::number(fileInfo.size()) + "bytes";
+        QString fileModified = fileInfo.lastModified().toString("yyyy-MM-dd hh:mm:ss");
+
+        QList<QStandardItem*> rowItems;
+        rowItems << new QStandardItem(fileName);
+        rowItems << new QStandardItem(fileSize);
+        rowItems << new QStandardItem(fileModified);
+        model->appendRow(rowItems);
     }
 
     // 设置表格模型
     restoreTable->setModel(model);
+    restoreTable->resizeRowsToContents();
+    restoreTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     //连接
     connect(restoreTable->selectionModel(), &QItemSelectionModel::selectionChanged, this, [=](const QItemSelection& selected, const QItemSelection& deselected) {
-    Q_UNUSED(deselected);
+        Q_UNUSED(deselected);
 
-    selectedIndexes = restoreTable->selectionModel()->selectedIndexes();
-    foreach (const QModelIndex& index, selectedIndexes) {
-        QString selectedFileName = index.data().toString();
-        QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
-        qDebug() << "Selected File: " << selectedFilePath;
-    }
-});
+        selectedIndexes = restoreTable->selectionModel()->selectedIndexes();
+        if (!selectedIndexes.isEmpty()) {
+            QSet<int> selectedRows;  // 用于存储选中行的唯一行号
+
+            // 提取选中行的唯一行号
+            for (const QModelIndex& index : selectedIndexes) {
+                selectedRows.insert(index.row());
+            }
+
+            // 遍历选中行
+            for (int row : selectedRows) {
+                QString selectedFileName = model->index(row, 0).data().toString();
+                QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
+                qDebug() << "Selected File: " << selectedFilePath;
+            }
+        }
+    });
 
     backupPathSelectBoxL->addWidget(restoreTable);
 
@@ -174,11 +198,20 @@ Widget::Widget(QWidget *parent)
     restorePathSelectBox->setLayout(restorePathSelectBoxL);
     gbl2->addWidget(restorePathSelectBox);
 
+    QHBoxLayout *restoreFuncL = new QHBoxLayout;
+    QGroupBox *restoreFunc = new QGroupBox;
     restore = new QPushButton("还原");
     connect(restore, &QPushButton::clicked, this, [=]() {
         Frestore();
     });
-    gbl2->addWidget(restore);
+    remove = new QPushButton("删除");
+    connect(remove, &QPushButton::clicked, this, [=]() {
+        Fremove();
+    });
+    restoreFuncL->addWidget(restore);
+    restoreFuncL->addWidget(remove);
+    restoreFunc->setLayout(restoreFuncL);
+    gbl2->addWidget(restoreFunc);
     
 
 //主界面
@@ -282,10 +315,12 @@ void Widget::ChangeConfig(){
         QMessageBox::information(this, "提示", "请选择路径");
         return;
     } 
-    config.setBackupPath(backupConfigPath);
+    config.setBackupPath(backupPath->text().toStdString());
     config.saveConfig("../backup_config.txt");
     backupConfigPath = backupPath->text().toStdString();
+    qDebug() << backupPath->text();
     QMessageBox::information(this, "提示", "修改成功");
+    RefreshTable();
 }
 
 void Widget::Fbackup(){
@@ -307,6 +342,7 @@ void Widget::Fbackup(){
         try{
             backupmanager->performBackup(password->text().toStdString());
             QMessageBox::information(this, "提示", "备份成功");
+            Refresh();
         } catch(const std::exception& e){
             QMessageBox::information(this, "提示", "备份失败");
         }
@@ -314,6 +350,7 @@ void Widget::Fbackup(){
         try{
             backupmanager->performBackup();
             QMessageBox::information(this, "提示", "备份成功");
+            Refresh();
         } catch(const std::exception& e){
             QMessageBox::information(this, "提示", "备份失败");
         }
@@ -329,8 +366,16 @@ void Widget::Frestore(){
         QMessageBox::information(this, "提示", "请选择还原路径");
         return;
     }
-    foreach (const QModelIndex& index, selectedIndexes) {
-        QString selectedFileName = index.data().toString();
+    int success = 0;
+    int failed = 0;
+    QSet<int> selectedRows;  // 用于存储选中行的唯一行号
+
+        // 提取选中行的唯一行号
+    for (const QModelIndex& index : selectedIndexes) {
+        selectedRows.insert(index.row());
+    }
+    for (int row : selectedRows) {
+        QString selectedFileName = model->index(row, 0).data().toString();
         QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
         
         if(backupmanager->isEncrypt(selectedFilePath.toStdString()).isEncrypt){
@@ -338,76 +383,115 @@ void Widget::Frestore(){
         QString Qpsw = QInputDialog::getText(nullptr, "输入密码", selectedFileName + "已加密，请输入密码:", QLineEdit::Password, "", &ok);
         std::string psw = Qpsw.toStdString();
         std::string psw_bak = backupmanager->isEncrypt(selectedFilePath.toStdString()).key;
-        if(psw != psw_bak){
-            QMessageBox::information(this, "提示", selectedFileName + "密码错误");
-            return;
-        }
         if(!ok){
-            return;
+            failed ++;
+            continue;
         } else if(psw.length() == 0){
             QMessageBox::information(this, "提示", selectedFileName + "密码不能为空");
-            return;
-        } 
+            failed ++;
+            continue;
+        } else if(psw != psw_bak){
+            QMessageBox::information(this, "提示", selectedFileName + "密码错误");
+            failed ++;
+            continue;
+        }
         else{
             try{
                 backupmanager->performRestore(selectedFilePath.toStdString(), restorePath->text().toStdString(), psw);
-                QMessageBox::information(this, "提示", selectedFileName + "还原成功");
+                success ++;
+                //QMessageBox::information(this, "提示", selectedFileName + "还原成功");
             } catch(const std::exception& e){
+                failed ++;
                 QMessageBox::information(this, "提示", selectedFileName + "还原失败");
             }
         }
     } else{
         try{
             backupmanager->performRestore(selectedFilePath.toStdString(), restorePath->text().toStdString());
-            QMessageBox::information(this, "提示", selectedFileName + "还原成功");
+            success ++;
+            //QMessageBox::information(this, "提示", selectedFileName + "还原成功");
         } catch(const std::exception& e){
+            failed ++;
             QMessageBox::information(this, "提示", selectedFileName + "还原失败");
         }
     }
     }
-    
-    
+    std::ostringstream oss;
+    oss << "共处理" << selectedRows.size() << "项，其中还原成功" << success << "项，还原失败" << failed << "项";
+    //std::string restoreinfo = "共处理" + selectedIndexes.size() + "项，其中还原成功" + success + "项，还原失败" + failed + "项";
+    std::string restoreinfo = oss.str();
+    QString qrestoreinfo = QString::fromStdString(restoreinfo);
+    QMessageBox::information(this, "提示", qrestoreinfo);
+    Refresh();
 }
 
-// void Widget::Frestore(){
-//     if(backupedPath->text().isEmpty()){
-//         QMessageBox::information(this, "提示", "请选择待还原文件");
-//         return;
-//     }
-//     if(restorePath->text().isEmpty()){
-//         QMessageBox::information(this, "提示", "请选择还原路径");
-//         return;
-//     }
-//     if(backupmanager->isEncrypt(backupedPath->text().toStdString()).isEncrypt){
-//         bool ok;
-//         QString Qpsw = QInputDialog::getText(nullptr, "输入密码", "请输入密码:", QLineEdit::Password, "", &ok);
-//         std::string psw = Qpsw.toStdString();
-//         std::string psw_bak = backupmanager->isEncrypt(backupedPath->text().toStdString()).key;
-//         if(psw != psw_bak){
-//             QMessageBox::information(this, "提示", "密码错误");
-//             return;
-//         }
-//         if(!ok){
-//             return;
-//         } else if(psw.length() == 0){
-//             QMessageBox::information(this, "提示", "密码不能为空");
-//             return;
-//         } 
-//         else{
-//             try{
-//                 backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString(), psw);
-//                 QMessageBox::information(this, "提示", "还原成功");
-//             } catch(const std::exception& e){
-//                 QMessageBox::information(this, "提示", "还原失败");
-//             }
-//         }
-//     } else{
-//         try{
-//             backupmanager->performRestore(backupedPath->text().toStdString(), restorePath->text().toStdString());
-//             QMessageBox::information(this, "提示", "还原成功");
-//         } catch(const std::exception& e){
-//             QMessageBox::information(this, "提示", "还原失败");
-//         }
-//     }
-    
-// }
+
+void Widget::Fremove(){
+    if(selectedIndexes.isEmpty()){
+        QMessageBox::information(this, "提示", "请选择可还原文件");
+        return;
+    }
+    qDebug() << "1";
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "删除文件", "确定要删除选中的文件吗？", QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes){
+        QSet<int> selectedRows;  // 用于存储选中行的唯一行号
+
+        // 提取选中行的唯一行号
+        for (const QModelIndex& index : selectedIndexes) {
+            selectedRows.insert(index.row());
+        }
+        for (int row : selectedRows) {
+            QString selectedFileName = model->index(row, 0).data().toString();
+            QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
+            QFile rfile(selectedFilePath);
+            if (rfile.remove()) {
+                    qDebug() << "File removed successfully: " << selectedFilePath;
+            } else {
+                qDebug() << "Failed to remove file: " << selectedFilePath;
+            }
+        }
+    }
+    RefreshTable();
+        
+}
+
+void Widget::RefreshTable()
+{
+    // 清除旧数据
+    QStandardItemModel* model = qobject_cast<QStandardItemModel*>(restoreTable->model());
+    if (model)
+    {
+        model->removeRows(0, model->rowCount());
+    }
+
+    // 获取目录中特定后缀的文件列表
+    QStringList filters;
+    filters << "*.zth";
+    restoreSrcDir.setPath(QString::fromStdString(backupConfigPath));
+    QFileInfoList fileList = restoreSrcDir.entryInfoList(filters, QDir::Files);
+
+    // 将文件列表添加到表格模型中
+    foreach (const QFileInfo& fileInfo, fileList) {
+        QString fileName = fileInfo.fileName();
+        QString fileSize = QString::number(fileInfo.size()) + " bytes";
+        QString fileModified = fileInfo.lastModified().toString("yyyy-MM-dd hh:mm:ss");
+
+        QList<QStandardItem*> rowItems;
+        rowItems << new QStandardItem(fileName);
+        rowItems << new QStandardItem(fileSize);
+        rowItems << new QStandardItem(fileModified);
+        model->appendRow(rowItems);
+    }
+
+    // 设置表格
+    restoreTable->resizeColumnsToContents();
+    restoreTable->resizeRowsToContents();
+}
+
+void Widget::Refresh(){
+    RefreshTable();
+    restorePath->setText("");
+    nameInput->setText("");
+    dataPath->setText("");
+    password->setText("");
+}
