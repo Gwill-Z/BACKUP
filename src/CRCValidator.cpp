@@ -2,7 +2,6 @@
 
 uint32_t CRCValidator::calculateCRC(const std::string& data) {
     // 实现CRC计算逻辑
-    // 这是一个示例实现
     uint32_t crc = 0xFFFFFFFF;
     for (char c : data) {
         crc ^= static_cast<uint8_t>(c);

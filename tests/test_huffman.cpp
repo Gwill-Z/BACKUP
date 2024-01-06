@@ -33,7 +33,23 @@ TEST_F(HuffmanTest, SerializeDeserializeTest) {
     ASSERT_EQ(serialized, serializedAgain);
 }
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+TEST_F(HuffmanTest, CompressDecompressTest) {
+    std::string test_str = "123zjltbjhsk111112354325";
+
+    std::unordered_map<char, int> frequencies;
+    for (char ch : test_str) {
+        frequencies[ch]++;
+    }
+    // 创建哈夫曼树
+    Compressor compressor;
+    compressor.buildTree(frequencies);
+
+    // 压缩数据
+    std::string compressed = compressor.compress(test_str);
+
+    // 解压数据
+    std::string decompressed = compressor.decompress(compressed);
+
+    // 检查解压后的数据是否与原始数据相同
+    ASSERT_EQ(decompressed, test_str);
 }
