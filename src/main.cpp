@@ -57,7 +57,7 @@ int main() {
             std::cout << "输入还原目标路径: ";
             std::cin >> targetPath;
             std::string fullBackupPath = config.getBackupPath() + "/" + fileName;   
-            if (backupManager.isEncrypt(fullBackupPath)) {
+            if (backupManager.isEncrypt(fullBackupPath).isEncrypt) {
                 std::cout << "输入加密密钥: ";
                 std::string key;
                 std::cin >> key;

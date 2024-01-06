@@ -20,11 +20,15 @@ std::string FileManager::readFile(const std::string& filePath) {
 
 void FileManager::readDirectory(const std::string& rootPath, const std::string& directoryPath, 
                                 std::vector<std::pair<std::string, std::string>>& files) {
+    // 获取路径的最后一部分
+    fs::path rootPathObj(rootPath);
+    std::string lastComponent = rootPathObj.filename().string();
     for (const auto& entry : fs::recursive_directory_iterator(directoryPath)) {
         if (!fs::is_directory(entry.status())) {
             // 计算相对路径
             std::string relativePath = fs::relative(entry.path(), rootPath).string();
-            files.push_back({relativePath, readFile(entry.path().string())});
+            std::string fullRelativePath = lastComponent + "/" + relativePath;
+            files.push_back({fullRelativePath, readFile(entry.path().string())});
         }
     }
 }
