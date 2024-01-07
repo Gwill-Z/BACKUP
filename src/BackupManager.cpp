@@ -151,3 +151,6 @@ Key BackupManager::isEncrypt(const std::string& backupFilePath) {
     }
 }
 
+void BackupManager::setFilter(long long minSize, long long maxSize, std::time_t startTime, std::time_t endTime, std::vector<std::string> fileFilter, std::vector<std::string> directoryFilter){
+    fileManager.setBackupFilter(minSize, maxSize, startTime, endTime, fileFilter, directoryFilter);
+}

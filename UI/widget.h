@@ -27,6 +27,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFormLayout>
+#include <QButtonGroup>
 #include <QFile>
 #include <QDebug>
 #include <string>
@@ -43,20 +44,21 @@ public:
     ~Widget();
 
 private:
-        QStackedWidget *sw;
+        QStackedWidget *sw, *dataFilter;
         QGroupBox *modemenu;
-        QGroupBox *gb1, *gb2, *gb3;
+        QGroupBox *gb1, *gb2, *gb3, *timeFilter, *sizeFilter, *fileFilter, *dirFilter;
         QPushButton *ps1, *ps2, *ps3;
         QLineEdit *backupPath, *dataPath, *password, *backupedPath, *restorePath, *nameInput;
         QDateTimeEdit *startTime, *endTime;
         QSpinBox *maxSize, *minSize;
         QTableWidget *fileTable, *dirTable;
         QPushButton *selectBackupPath, *selectDataPath, *backup, *selectBackupedPath,
-             *selectRestorePath, *restore, *changeBackupPath, *remove,
+             *selectRestorePath, *restore, *changeBackupPath, *remove, *pstime, *pssize, *psfile, *psdir,
              *addfile, *remfile;
         QCheckBox *encrypt, *filebackup, *dirbackup;
         QTableView *restoreTable;
         QDir restoreSrcDir;
+        QSet<int> fileIndex, dirIndex;
         QModelIndexList selectedIndexes;
         QStandardItemModel* model;
         QSet<QString> selectedFileSet;
@@ -66,8 +68,10 @@ private:
         void RefreshTable();
         void Refresh();
         void RefreshFileTable(QString path);
+        void RefreshDirTable(QString path);
 private slots:
         void GroupBoxChange(QWidget* gb);
+        void FilterBoxChange(QWidget* filter);
         void BackupPathChange(QLineEdit* le);
         void DataPathChange(QLineEdit* le);
         void PasswordInputState(int state);
@@ -77,6 +81,8 @@ private slots:
         void Frestore();
         void Fremove();
         void UpdateSize();
+        void UpdateFileIndex(int state);
+        void UpdateDirIndex(int state);
         // void FaddFile();
         // void FremFile();
 };

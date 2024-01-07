@@ -87,11 +87,47 @@ Widget::Widget(QWidget *parent)
 
 // 过滤
 
-    QHBoxLayout *dataFilterBoxL = new QHBoxLayout;
-    QGroupBox *dataFilterBox = new QGroupBox;
+    // QHBoxLayout *dataFilterBoxL = new QHBoxLayout;
+    // QGroupBox *dataFilterBox = new QGroupBox;
+    QGroupBox *filterWidget = new QGroupBox;
+    QVBoxLayout *filterWidgetL = new QVBoxLayout;
+    dataFilter = new QStackedWidget();
+    
+// 切换stack按钮
+    pstime = new QPushButton("时间");
+    pssize = new QPushButton("大小");
+    psfile = new QPushButton("排除文件");
+    psdir = new QPushButton("排除目录");
+    pstime->setStyleSheet("background-color: gray");
+    QButtonGroup *filterGroup = new QButtonGroup(this);
+    filterGroup->addButton(pstime);
+    filterGroup->addButton(pssize);
+    filterGroup->addButton(psfile);
+    filterGroup->addButton(psdir);
+    QHBoxLayout *filterGroupL = new QHBoxLayout;
+    filterGroupL->addWidget(pstime);
+    filterGroupL->addWidget(pssize);
+    filterGroupL->addWidget(psfile);
+    filterGroupL->addWidget(psdir);
+    filterGroup->setExclusive(true);
+    QWidget *pscontainer = new QWidget(this);
+    pscontainer->setLayout(filterGroupL);
+    connect(pstime, &QPushButton::clicked, this, [=]() {
+        FilterBoxChange(timeFilter);
+    });
+    connect(pssize, &QPushButton::clicked, this, [=]() {
+        FilterBoxChange(sizeFilter);
+    });
+    connect(psfile, &QPushButton::clicked, this, [=]() {
+        FilterBoxChange(fileFilter);
+    });
+    connect(psdir, &QPushButton::clicked, this, [=]() {
+        FilterBoxChange(dirFilter);
+    });
+    filterWidgetL->addWidget(pscontainer);
 
 // 时间
-    QGroupBox *timeFilter = new QGroupBox;
+    timeFilter = new QGroupBox;
     QLabel *timefilterlabel = new QLabel("时间范围（可选）:");
     QFormLayout *timeFilterL = new QFormLayout(timeFilter);
     timeFilterL->addWidget(timefilterlabel);
@@ -102,6 +138,7 @@ Widget::Widget(QWidget *parent)
     QLabel *endlabel = new QLabel("最晚时间:");
     endTime = new QDateTimeEdit();
     endTime->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
+    endTime->setDateTime(QDateTime::currentDateTime());
     endTime->setCalendarPopup(true);
     timeFilterL->addRow(startlabel, startTime);
     timeFilterL->addRow(endlabel, endTime);
@@ -129,68 +166,30 @@ Widget::Widget(QWidget *parent)
             startTime->setDateTime(newStartDateTime);
         }
     });
-    dataFilterBoxL->addWidget(timeFilter);
+    dataFilter->addWidget(timeFilter);
 
 // 文件大小
-    QGroupBox *sizeFilter = new QGroupBox;
+    sizeFilter = new QGroupBox;
     QLabel *sizefilterlabel = new QLabel("文件大小范围（可选）:");
     QFormLayout *sizeFilterL = new QFormLayout(sizeFilter);
     sizeFilterL->addWidget(sizefilterlabel);
-    QLabel *minlabel = new QLabel("最小文件大小（KB）:");
+    QLabel *minlabel = new QLabel("最小文件大小（Byte）:");
     minSize = new QSpinBox;
     minSize->setRange(0, std::numeric_limits<int>::max());
     minSize->setSingleStep(10);
-    QLabel *maxlabel = new QLabel("最大文件大小（KB）:");
+    QLabel *maxlabel = new QLabel("最大文件大小（Byte）:");
     maxSize = new QSpinBox;
     maxSize->setRange(0, std::numeric_limits<int>::max());
+    maxSize->setValue(std::numeric_limits<int>::max());
     maxSize->setSingleStep(10);
     sizeFilterL->addRow(minlabel, minSize);
     sizeFilterL->addRow(maxlabel, maxSize);
-    dataFilterBoxL->addWidget(sizeFilter);
     connect(minSize, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::UpdateSize);
     connect(maxSize, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::UpdateSize);
-
-// 指定文件与目录
+    dataFilter->addWidget(sizeFilter);
+// 排除文件
     // QHBoxLayout *sysFilterBoxL = new QHBoxLayout;
-    QGroupBox *sysFilterBox = new QGroupBox;
-
-    // fileTable = new QTableWidget;
-    // fileTable->setColumnCount(1);
-    // fileTable->setHorizontalHeaderLabels(QStringList() << "文件名");
-    // QSet<QString> fileSet;
-    // //for(const QString& filePath : )
-    // addfile = new QPushButton("添加");
-    // dataFilterBoxL->addWidget(addfile);
-
-    // connect(addfile, &QPushButton::clicked, this, [=]() {
-    //     FaddFile();
-    // });
-    // fileTable = new QTableWidget;
-    // int columnCount = 1; // 文件名一列
-    // fileTable->setColumnCount(columnCount);
-    // fileTable->setHorizontalHeaderLabels(QStringList() << "文件名");
-
-    // // 创建一个添加按钮
-    // addfile = new QPushButton("添加");
-    // // 连接 addfile 的 clicked 信号到槽函数
-    // connect(addfile, &QPushButton::clicked, this, [=]() {
-    //     FaddFile();
-    // });
-
-    // // 创建一个删除按钮
-    // remfile = new QPushButton("删除");
-    
-    // // 连接 remfile 的 clicked 信号到槽函数
-    // connect(remfile, &QPushButton::clicked, this, [=]() {
-    //     FremFile();
-    // });
-
-    // // 创建一个垂直布局，并将表格和按钮添加进去
-    // QVBoxLayout* layout = new QVBoxLayout;
-    // layout->addWidget(fileTable);
-    // layout->addWidget(addfile);
-    // layout->addWidget(remfile);
-    // sysFilterBox->setLayout(layout);
+    fileFilter = new QGroupBox;
 
     // 创建一个 QTableWidget，并设置列数和表头
     fileTable = new QTableWidget;
@@ -199,15 +198,29 @@ Widget::Widget(QWidget *parent)
     fileTable->resizeColumnToContents(0);
 
     // 创建一个垂直布局，并将表格添加进去
-    QVBoxLayout* layout = new QVBoxLayout;
-    layout->addWidget(fileTable);
-    sysFilterBox->setLayout(layout);
-    gbl1->addWidget(sysFilterBox);
+    QVBoxLayout* fileFilterL = new QVBoxLayout;
+    fileFilterL->addWidget(fileTable);
+    fileFilter->setLayout(fileFilterL);
+    dataFilter->addWidget(fileFilter);
 
+//排除目录
+    dirFilter = new QGroupBox;
 
-    dataFilterBox->setLayout(dataFilterBoxL);
-    gbl1->addWidget(dataFilterBox);
+    // 创建一个 QTableWidget，并设置列数和表头
+    dirTable = new QTableWidget;
+    dirTable->setColumnCount(2);
+    dirTable->setHorizontalHeaderLabels(QStringList() << "目录名" << "选择");
+    dirTable->resizeColumnToContents(0);
 
+    // 创建一个垂直布局，并将表格添加进去
+    QVBoxLayout* dirFilterL = new QVBoxLayout;
+    dirFilterL->addWidget(dirTable);
+    dirFilter->setLayout(dirFilterL);
+    dataFilter->addWidget(dirFilter);
+
+    filterWidgetL->addWidget(dataFilter);
+    filterWidget->setLayout(filterWidgetL);
+    gbl1->addWidget(filterWidget);
     
 
     QHBoxLayout *nameInputBoxL = new QHBoxLayout;
@@ -405,6 +418,25 @@ void Widget::GroupBoxChange(QWidget* gb){
     }
 }
 
+void Widget::FilterBoxChange(QWidget* filter){
+    dataFilter->setCurrentWidget(filter);
+    pstime->setStyleSheet("");
+    pssize->setStyleSheet("");
+    psfile->setStyleSheet("");
+    psdir->setStyleSheet("");
+
+        // 根据当前显示的GroupBox设置对应按钮的样式表
+    if (filter == timeFilter) {
+        pstime->setStyleSheet("background-color: gray");
+    } else if (filter == sizeFilter) {
+        pssize->setStyleSheet("background-color: gray");
+    } else if (filter == fileFilter) {
+        psfile->setStyleSheet("background-color: gray");
+    } else if (filter == dirFilter) {
+        psdir->setStyleSheet("background-color: gray");
+    }
+}
+
 void Widget::BackupPathChange(QLineEdit* le){
     QString path = QFileDialog::getExistingDirectory(
                 nullptr, "选择目录", QDir::homePath(),
@@ -435,6 +467,7 @@ void Widget::DataPathChange(QLineEdit* le) {
         le->setText(path);
         if(dirbackup->isChecked()){
             RefreshFileTable(path);
+            RefreshDirTable(path);
         }
     }
 }
@@ -474,6 +507,30 @@ void Widget::Fbackup(){
     }
     backupmanager->setSourcePath(dataPath->text().toStdString());
     backupmanager->setBackupPath(config.getBackupPath() + "/" + nameInput->text().toStdString() + ".zth");
+    long long sminSize = minSize->value();
+    long long smaxSize = maxSize->value();
+    std::time_t sstartTime = startTime->dateTime().toSecsSinceEpoch();
+    std::time_t sendTime = endTime->dateTime().toSecsSinceEpoch();
+    std::vector<std::string> fileV;
+    for (QSet<int>::const_iterator it = fileIndex.constBegin(); it != fileIndex.constEnd(); ++it) {
+        int value = *it;
+        QTableWidgetItem* item1 = fileTable->item(value, 0);
+        if(item1){
+            QString path = item1->text();
+            fileV.push_back(path.toStdString());
+        }
+    }
+    std::vector<std::string> dirV;
+    for (QSet<int>::const_iterator it = dirIndex.constBegin(); it != dirIndex.constEnd(); ++it) {
+        int value = *it;
+        QTableWidgetItem* item1 = dirTable->item(value, 0);
+        if(item1){
+            QString path = item1->text();
+            dirV.push_back(path.toStdString());
+            qDebug() << path;
+        }
+    }
+    backupmanager->setFilter(sminSize, smaxSize, sstartTime, sendTime, fileV, dirV);
     if(encrypt->isChecked()){
         try{
             backupmanager->performBackup(password->text().toStdString());
@@ -591,54 +648,34 @@ void Widget::Fremove(){
         
 }
 
-// void Widget::FaddFile(){
-//     QStringList selectedFiles = QFileDialog::getOpenFileNames(nullptr, "选择文件", dataPath->text(), "All Files (*)");
-
-//         // 遍历选择的文件列表
-//         for (const QString& filePath : selectedFiles) {
-//             QFileInfo fileInfo(filePath);
-//             QString fileName = fileInfo.fileName();
-
-//             // 检查文件是否已经选择过，如果是则跳过
-//             if (selectedFileSet.contains(fileName)) {
-//                 continue;
-//             }
-
-//             // 在表格中插入新行，并设置文件名
-//             int rowCount = fileTable->rowCount();
-//             fileTable->insertRow(rowCount);
-//             fileTable->setItem(rowCount, 0, new QTableWidgetItem(fileName));
-
-//             // 将文件名添加到已选择的文件集合中
-//             selectedFileSet.insert(fileName);
-//         }
-// }
-
-// void Widget::FremFile(){
-//     // 获取选中的行
-//         QList<QTableWidgetItem*> selectedItems = fileTable->selectedItems();
-
-//         // 遍历选中的行并删除
-//         for (QTableWidgetItem* item : selectedItems) {
-//             int row = item->row();
-//             QString fileName = fileTable->item(row, 0)->text();
-
-//             // 从表格和已选择的文件集合中删除该行和文件名
-//             fileTable->removeRow(row);
-//             selectedFileSet.remove(fileName);
-//         }
-
-//         // 清除选中的项
-//         fileTable->clearSelection();
-
-        
-// }
 
 void Widget::UpdateSize(){
     if (minSize->value() >= maxSize->value())
     {
         // 更新 minSize 和 maxSize 的值
         minSize->setValue(maxSize->value() - minSize->singleStep());
+    }
+}
+
+void Widget::UpdateFileIndex(int state){
+    QCheckBox* checkBox = qobject_cast<QCheckBox*>(sender());
+    int index = fileTable->indexAt(checkBox->parentWidget()->pos()).row();
+
+    if (state == Qt::Checked) {
+        fileIndex.insert(index);
+    } else {
+        fileIndex.remove(index);
+    }
+}
+
+void Widget::UpdateDirIndex(int state){
+    QCheckBox* checkBox = qobject_cast<QCheckBox*>(sender());
+    int index = fileTable->indexAt(checkBox->parentWidget()->pos()).row();
+
+    if (state == Qt::Checked) {
+        dirIndex.insert(index);
+    } else {
+        dirIndex.remove(index);
     }
 }
 
@@ -714,6 +751,41 @@ void Widget::RefreshFileTable(QString path){
         layout->addWidget(checkBox);
         layout->setContentsMargins(0, 0, 0, 0);
         fileTable->setCellWidget(i, 1, checkboxContainer);
+         // 连接复选框的状态变化信号槽
+        connect(checkBox, &QCheckBox::stateChanged, this, &Widget::UpdateFileIndex);
     }
     fileTable->resizeColumnToContents(0);
+}
+
+void Widget::RefreshDirTable(QString path) {
+    // 指定的目录路径
+    QString directoryPath = path;
+    // 遍历指定目录，获取所有子目录
+    QStringList subdirectoryList;
+    QDirIterator it(directoryPath, QDir::Dirs | QDir::NoDotAndDotDot);
+    while (it.hasNext()) {
+        it.next();
+        QString subdirectoryPath = it.filePath();
+        subdirectoryList.append(subdirectoryPath);
+    }
+    dirTable->clearContents();
+    dirTable->setRowCount(0);
+    // 在表格中插入行，并设置子目录路径和复选框
+    for (int i = 0; i < subdirectoryList.size(); ++i) {
+        const QString& subdirectoryPath = subdirectoryList.at(i);
+
+        dirTable->insertRow(i);
+        dirTable->setItem(i, 0, new QTableWidgetItem(subdirectoryPath));
+
+        QWidget* checkboxContainer = new QWidget();
+        QHBoxLayout* layout = new QHBoxLayout(checkboxContainer);
+        layout->setAlignment(Qt::AlignCenter);
+        QCheckBox* checkBox = new QCheckBox;
+        layout->addWidget(checkBox);
+        layout->setContentsMargins(0, 0, 0, 0);
+        dirTable->setCellWidget(i, 1, checkboxContainer);
+         // 连接复选框的状态变化信号槽
+        connect(checkBox, &QCheckBox::stateChanged, this, &Widget::UpdateDirIndex);
+    }
+    dirTable->resizeColumnToContents(0);
 }

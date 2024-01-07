@@ -33,6 +33,7 @@ public:
     Result performRestore(const std::string& backupFilePath, const std::string& targetPath);
     Result performRestore(const std::string& backupFilePath, const std::string& targetPath, std::string key);
     Key isEncrypt(const std::string& backupFilePath);
+    void setFilter(long long minSize, long long maxSize, std::time_t startTime, std::time_t endTime, std::vector<std::string> fileFilter, std::vector<std::string> directoryFilter);
     
 };
 
