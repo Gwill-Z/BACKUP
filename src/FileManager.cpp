@@ -44,14 +44,13 @@ void FileManager::readDirectory(const std::string& rootPath, const std::string& 
             if (isFileInList(entry.path().string(), backupFilter.fileFilter)) {
                 continue;
             }
+            if (isFileInDirectories(entry.path().string(), backupFilter.directoryFilter)) {
+                continue;
+            }
             // 计算相对路径
             std::string relativePath = fs::relative(entry.path(), rootPath).string();
             std::string fullRelativePath = lastComponent + "/" + relativePath;
             files.push_back({fullRelativePath, readFile(entry.path().string())});
-        } else {
-            if (isFileInDirectories(entry.path().string(), backupFilter.directoryFilter)) {
-                continue;
-            }
         }
     }
 }
