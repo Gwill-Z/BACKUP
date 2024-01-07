@@ -48,17 +48,24 @@ Widget::Widget(QWidget *parent)
     filebackup = new QCheckBox("文件");
     dirbackup = new QCheckBox("目录");
     filebackup->setChecked(true);
+    filebackup->setDisabled(true);
     dataClassSelectBoxL->addWidget(filebackup);
     dataClassSelectBoxL->addWidget(dirbackup);
     dataClassSelectBox->setLayout(dataClassSelectBoxL);
     connect(filebackup, &QCheckBox::stateChanged, this, [=](int state) {
     if (state == Qt::Checked) {
         dirbackup->setChecked(false);
+        filebackup->setDisabled(true);
+        dirbackup->setDisabled(false);
+        Refresh();
         }
     });
     connect(dirbackup, &QCheckBox::stateChanged, this, [=](int state) {
     if (state == Qt::Checked) {
         filebackup->setChecked(false);
+        dirbackup->setDisabled(true);
+        filebackup->setDisabled(false);
+        Refresh();
         }
     });
     gbl1->addWidget(dataClassSelectBox);
@@ -77,6 +84,131 @@ Widget::Widget(QWidget *parent)
     dataPathSelectBoxL->addWidget(selectDataPath);
     dataPathSelectBox->setLayout(dataPathSelectBoxL);
     gbl1->addWidget(dataPathSelectBox);
+
+// 过滤
+
+    QHBoxLayout *dataFilterBoxL = new QHBoxLayout;
+    QGroupBox *dataFilterBox = new QGroupBox;
+
+// 时间
+    QGroupBox *timeFilter = new QGroupBox;
+    QLabel *timefilterlabel = new QLabel("时间范围（可选）:");
+    QFormLayout *timeFilterL = new QFormLayout(timeFilter);
+    timeFilterL->addWidget(timefilterlabel);
+    QLabel *startlabel = new QLabel("最早时间:");
+    startTime = new QDateTimeEdit();
+    startTime->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
+    startTime->setCalendarPopup(true);
+    QLabel *endlabel = new QLabel("最晚时间:");
+    endTime = new QDateTimeEdit();
+    endTime->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
+    endTime->setCalendarPopup(true);
+    timeFilterL->addRow(startlabel, startTime);
+    timeFilterL->addRow(endlabel, endTime);
+    // 连接开始时间编辑框的dateTimeChanged信号
+    QObject::connect(startTime, &QDateTimeEdit::dateTimeChanged, [=](const QDateTime& startDateTime) {
+        // 获取当前的结束时间
+        QDateTime currentEndDateTime = endTime->dateTime();
+
+        // 检查结束时间是否小于开始时间
+        if (currentEndDateTime <= startDateTime) {
+            // 如果结束时间小于或等于开始时间，则将结束时间设置为开始时间的下一秒
+            QDateTime newEndDateTime = startDateTime.addSecs(1);
+            endTime->setDateTime(newEndDateTime);
+        }
+    });
+    // 连接结束时间编辑框的dateTimeChanged信号
+    QObject::connect(endTime, &QDateTimeEdit::dateTimeChanged, [=](const QDateTime& endDateTime) {
+        // 获取当前的开始时间
+        QDateTime currentStartDateTime = startTime->dateTime();
+
+        // 检查结束时间是否小于开始时间
+        if (endDateTime <= currentStartDateTime) {
+            // 如果结束时间小于或等于开始时间，则将开始时间设置为结束时间的前一秒
+            QDateTime newStartDateTime = endDateTime.addSecs(-1);
+            startTime->setDateTime(newStartDateTime);
+        }
+    });
+    dataFilterBoxL->addWidget(timeFilter);
+
+// 文件大小
+    QGroupBox *sizeFilter = new QGroupBox;
+    QLabel *sizefilterlabel = new QLabel("文件大小范围（可选）:");
+    QFormLayout *sizeFilterL = new QFormLayout(sizeFilter);
+    sizeFilterL->addWidget(sizefilterlabel);
+    QLabel *minlabel = new QLabel("最小文件大小（KB）:");
+    minSize = new QSpinBox;
+    minSize->setRange(0, std::numeric_limits<int>::max());
+    minSize->setSingleStep(10);
+    QLabel *maxlabel = new QLabel("最大文件大小（KB）:");
+    maxSize = new QSpinBox;
+    maxSize->setRange(0, std::numeric_limits<int>::max());
+    maxSize->setSingleStep(10);
+    sizeFilterL->addRow(minlabel, minSize);
+    sizeFilterL->addRow(maxlabel, maxSize);
+    dataFilterBoxL->addWidget(sizeFilter);
+    connect(minSize, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::UpdateSize);
+    connect(maxSize, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::UpdateSize);
+
+// 指定文件与目录
+    // QHBoxLayout *sysFilterBoxL = new QHBoxLayout;
+    QGroupBox *sysFilterBox = new QGroupBox;
+
+    // fileTable = new QTableWidget;
+    // fileTable->setColumnCount(1);
+    // fileTable->setHorizontalHeaderLabels(QStringList() << "文件名");
+    // QSet<QString> fileSet;
+    // //for(const QString& filePath : )
+    // addfile = new QPushButton("添加");
+    // dataFilterBoxL->addWidget(addfile);
+
+    // connect(addfile, &QPushButton::clicked, this, [=]() {
+    //     FaddFile();
+    // });
+    // fileTable = new QTableWidget;
+    // int columnCount = 1; // 文件名一列
+    // fileTable->setColumnCount(columnCount);
+    // fileTable->setHorizontalHeaderLabels(QStringList() << "文件名");
+
+    // // 创建一个添加按钮
+    // addfile = new QPushButton("添加");
+    // // 连接 addfile 的 clicked 信号到槽函数
+    // connect(addfile, &QPushButton::clicked, this, [=]() {
+    //     FaddFile();
+    // });
+
+    // // 创建一个删除按钮
+    // remfile = new QPushButton("删除");
+    
+    // // 连接 remfile 的 clicked 信号到槽函数
+    // connect(remfile, &QPushButton::clicked, this, [=]() {
+    //     FremFile();
+    // });
+
+    // // 创建一个垂直布局，并将表格和按钮添加进去
+    // QVBoxLayout* layout = new QVBoxLayout;
+    // layout->addWidget(fileTable);
+    // layout->addWidget(addfile);
+    // layout->addWidget(remfile);
+    // sysFilterBox->setLayout(layout);
+
+    // 创建一个 QTableWidget，并设置列数和表头
+    fileTable = new QTableWidget;
+    fileTable->setColumnCount(2);
+    fileTable->setHorizontalHeaderLabels(QStringList() << "文件名" << "选择");
+    fileTable->resizeColumnToContents(0);
+
+    // 创建一个垂直布局，并将表格添加进去
+    QVBoxLayout* layout = new QVBoxLayout;
+    layout->addWidget(fileTable);
+    sysFilterBox->setLayout(layout);
+    gbl1->addWidget(sysFilterBox);
+
+
+    dataFilterBox->setLayout(dataFilterBoxL);
+    gbl1->addWidget(dataFilterBox);
+
+    
 
     QHBoxLayout *nameInputBoxL = new QHBoxLayout;
     QGroupBox *nameInputBox = new QGroupBox;
@@ -137,10 +269,10 @@ Widget::Widget(QWidget *parent)
     QStringList filters;
     filters << "*.zth";
     restoreSrcDir.setPath(QString::fromStdString(backupConfigPath));
-    QFileInfoList fileList = restoreSrcDir.entryInfoList(filters, QDir::Files);
+    QFileInfoList restoreList = restoreSrcDir.entryInfoList(filters, QDir::Files);
 
     // 将文件列表添加到表格模型中
-    foreach (const QFileInfo& fileInfo, fileList) {
+    foreach (const QFileInfo& fileInfo, restoreList) {
         QString fileName = fileInfo.fileName();
         QString fileSize = QString::number(fileInfo.size()) + "bytes";
         QString fileModified = fileInfo.lastModified().toString("yyyy-MM-dd hh:mm:ss");
@@ -294,12 +426,16 @@ void Widget::DataPathChange(QLineEdit* le) {
         path = QFileDialog::getExistingDirectory(
             nullptr, "选择目录", QDir::homePath(),
             QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        
     } else{
         QMessageBox::information(this, "提示", "系统出错");
     }
     
     if (!path.isEmpty()) {
         le->setText(path);
+        if(dirbackup->isChecked()){
+            RefreshFileTable(path);
+        }
     }
 }
 
@@ -455,6 +591,58 @@ void Widget::Fremove(){
         
 }
 
+// void Widget::FaddFile(){
+//     QStringList selectedFiles = QFileDialog::getOpenFileNames(nullptr, "选择文件", dataPath->text(), "All Files (*)");
+
+//         // 遍历选择的文件列表
+//         for (const QString& filePath : selectedFiles) {
+//             QFileInfo fileInfo(filePath);
+//             QString fileName = fileInfo.fileName();
+
+//             // 检查文件是否已经选择过，如果是则跳过
+//             if (selectedFileSet.contains(fileName)) {
+//                 continue;
+//             }
+
+//             // 在表格中插入新行，并设置文件名
+//             int rowCount = fileTable->rowCount();
+//             fileTable->insertRow(rowCount);
+//             fileTable->setItem(rowCount, 0, new QTableWidgetItem(fileName));
+
+//             // 将文件名添加到已选择的文件集合中
+//             selectedFileSet.insert(fileName);
+//         }
+// }
+
+// void Widget::FremFile(){
+//     // 获取选中的行
+//         QList<QTableWidgetItem*> selectedItems = fileTable->selectedItems();
+
+//         // 遍历选中的行并删除
+//         for (QTableWidgetItem* item : selectedItems) {
+//             int row = item->row();
+//             QString fileName = fileTable->item(row, 0)->text();
+
+//             // 从表格和已选择的文件集合中删除该行和文件名
+//             fileTable->removeRow(row);
+//             selectedFileSet.remove(fileName);
+//         }
+
+//         // 清除选中的项
+//         fileTable->clearSelection();
+
+        
+// }
+
+void Widget::UpdateSize(){
+    if (minSize->value() >= maxSize->value())
+    {
+        // 更新 minSize 和 maxSize 的值
+        minSize->setValue(maxSize->value() - minSize->singleStep());
+    }
+}
+
+// 刷新
 void Widget::RefreshTable()
 {
     // 清除旧数据
@@ -494,4 +682,38 @@ void Widget::Refresh(){
     nameInput->setText("");
     dataPath->setText("");
     password->setText("");
+}
+
+void Widget::RefreshFileTable(QString path){
+    // 指定的目录路径
+    QString directoryPath = path;
+    // 遍历指定目录和子目录，获取所有文件
+    QFileInfoList fileList;
+    QDirIterator it(directoryPath, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        QFileInfo fileInfo = it.fileInfo();
+        if (fileInfo.isFile()) {
+            fileList.append(fileInfo);
+        }
+    }
+    fileTable->clearContents();
+    fileTable->setRowCount(0);
+    // 在表格中插入行，并设置文件名和复选框
+    for (int i = 0; i < fileList.size(); ++i) {
+        const QFileInfo& fileInfo = fileList.at(i);
+        QString filePath = fileInfo.filePath();
+
+        fileTable->insertRow(i);
+        fileTable->setItem(i, 0, new QTableWidgetItem(filePath));
+
+        QWidget* checkboxContainer = new QWidget();
+        QHBoxLayout* layout = new QHBoxLayout(checkboxContainer);
+        layout->setAlignment(Qt::AlignCenter);
+        QCheckBox* checkBox = new QCheckBox;
+        layout->addWidget(checkBox);
+        layout->setContentsMargins(0, 0, 0, 0);
+        fileTable->setCellWidget(i, 1, checkboxContainer);
+    }
+    fileTable->resizeColumnToContents(0);
 }
