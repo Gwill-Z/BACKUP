@@ -22,6 +22,11 @@ void BackupConfig::loadConfig(const std::string& configFilePath) {
     if (configFile) {
         std::getline(configFile, backupPath);
     }
+
+    // 如果backupPath不存在，则创建该目录
+    if (!std::filesystem::exists(backupPath)) {
+        std::filesystem::create_directory(backupPath);
+    }
 }
 
 void BackupConfig::saveConfig(const std::string& configFilePath) const {

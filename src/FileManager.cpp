@@ -113,10 +113,7 @@ void FileManager::createDirectory(const std::string& directoryPath) {
 void FileManager::restoreFiles(const std::vector<std::pair<std::string, std::string>>& files, const std::string& targetPath) {
     for (const auto& file : files) {
         // 构建完整的目标文件路径
-        spdlog::info("Restoring file: {}", file.first);
-        spdlog::info("Target path: {}", targetPath);
         std::filesystem::path fullPath = std::filesystem::path(targetPath) / file.first;
-        spdlog::info("Full path: {}", fullPath.string());
         // 创建文件所在目录（如果不存在）
         std::filesystem::create_directories(fullPath.parent_path());
 

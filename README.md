@@ -13,13 +13,9 @@ sudo apt-get install qt5*
 git clone --recurse-submodules <https://github.com/Gwill-Z/BACKUP.git>
 
 ## 编译和运行项目
-mkdir build
+bash build_script.sh
 
 cd build
-
-cmake ..
-
-make
 
 ./BackupProject
 
