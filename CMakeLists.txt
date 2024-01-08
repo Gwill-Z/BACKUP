@@ -13,8 +13,8 @@ set(CMAKE_PREFIX_PATH $ENV{QTDIR512MINGW})
 find_package(Qt5 COMPONENTS Core Widgets Gui REQUIRED)
 
 #调试模式
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCMAKE_BUILD_TYPE=Debug")
+# set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCMAKE_BUILD_TYPE=Debug")
 
 include_directories(UI)
 include_directories(include)

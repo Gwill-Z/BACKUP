@@ -29,9 +29,7 @@
 #include <QFormLayout>
 #include <QButtonGroup>
 #include <QFile>
-#include <QDebug>
 #include <string>
-#include <iostream>
 #include <sstream>
 
 class Widget : public QWidget

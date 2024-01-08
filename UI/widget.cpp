@@ -41,6 +41,7 @@ Widget::Widget(QWidget *parent)
     
 
 //备份
+    gbl1->setSizeConstraint(QLayout::SetMaximumSize);
     QHBoxLayout *dataClassSelectBoxL = new QHBoxLayout;
     QGroupBox *dataClassSelectBox = new QGroupBox;
     QLabel *dataclasslabel = new QLabel("备份类型:");
@@ -57,6 +58,7 @@ Widget::Widget(QWidget *parent)
         dirbackup->setChecked(false);
         filebackup->setDisabled(true);
         dirbackup->setDisabled(false);
+        dataFilter->setDisabled(true);
         Refresh();
         }
     });
@@ -65,6 +67,7 @@ Widget::Widget(QWidget *parent)
         filebackup->setChecked(false);
         dirbackup->setDisabled(true);
         filebackup->setDisabled(false);
+        dataFilter->setEnabled(true);
         Refresh();
         }
     });
@@ -196,7 +199,7 @@ Widget::Widget(QWidget *parent)
     fileTable->setColumnCount(2);
     fileTable->setHorizontalHeaderLabels(QStringList() << "文件名" << "选择");
     fileTable->resizeColumnToContents(0);
-
+    
     // 创建一个垂直布局，并将表格添加进去
     QVBoxLayout* fileFilterL = new QVBoxLayout;
     fileFilterL->addWidget(fileTable);
@@ -217,7 +220,7 @@ Widget::Widget(QWidget *parent)
     dirFilterL->addWidget(dirTable);
     dirFilter->setLayout(dirFilterL);
     dataFilter->addWidget(dirFilter);
-
+    dataFilter->setDisabled(true);
     filterWidgetL->addWidget(dataFilter);
     filterWidget->setLayout(filterWidgetL);
     gbl1->addWidget(filterWidget);
@@ -318,7 +321,6 @@ Widget::Widget(QWidget *parent)
             for (int row : selectedRows) {
                 QString selectedFileName = model->index(row, 0).data().toString();
                 QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
-                qDebug() << "Selected File: " << selectedFilePath;
             }
         }
     });
@@ -487,7 +489,6 @@ void Widget::ChangeConfig(){
     config.setBackupPath(backupPath->text().toStdString());
     config.saveConfig("../backup_config.txt");
     backupConfigPath = backupPath->text().toStdString();
-    qDebug() << backupPath->text();
     QMessageBox::information(this, "提示", "修改成功");
     RefreshTable();
 }
@@ -527,7 +528,6 @@ void Widget::Fbackup(){
         if(item1){
             QString path = item1->text();
             dirV.push_back(path.toStdString());
-            qDebug() << path;
         }
     }
     backupmanager->setFilter(sminSize, smaxSize, sstartTime, sendTime, fileV, dirV);
@@ -624,7 +624,6 @@ void Widget::Fremove(){
         QMessageBox::information(this, "提示", "请选择可还原文件");
         return;
     }
-    qDebug() << "1";
     QMessageBox::StandardButton reply = QMessageBox::question(this, "删除文件", "确定要删除选中的文件吗？", QMessageBox::Yes | QMessageBox::No);
     if (reply == QMessageBox::Yes){
         QSet<int> selectedRows;  // 用于存储选中行的唯一行号
@@ -637,11 +636,6 @@ void Widget::Fremove(){
             QString selectedFileName = model->index(row, 0).data().toString();
             QString selectedFilePath = restoreSrcDir.absoluteFilePath(selectedFileName);
             QFile rfile(selectedFilePath);
-            if (rfile.remove()) {
-                    qDebug() << "File removed successfully: " << selectedFilePath;
-            } else {
-                qDebug() << "Failed to remove file: " << selectedFilePath;
-            }
         }
     }
     RefreshTable();
@@ -719,6 +713,15 @@ void Widget::Refresh(){
     nameInput->setText("");
     dataPath->setText("");
     password->setText("");
+    minSize->setValue(0);
+    maxSize->setValue(std::numeric_limits<int>::max());
+    QDateTime specifiedDateTime(QDate(2000, 1, 1), QTime(0, 0, 0));
+    startTime->setDateTime(specifiedDateTime);
+    endTime->setDateTime(QDateTime::currentDateTime());
+    fileTable->clearContents();
+    fileTable->setRowCount(0);
+    dirTable->clearContents();
+    dirTable->setRowCount(0);
 }
 
 void Widget::RefreshFileTable(QString path){
